@@ -163,10 +163,6 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::resource('branches', BranchController::class);
-});
-
-Route::middleware(['auth'])->group(function () {
     Route::get('/users', [UserController::class, 'index'])
         ->middleware('can:user.view')
         ->name('users.index');
