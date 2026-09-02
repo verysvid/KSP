@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreSavingTypeRequest;
 use App\Http\Requests\UpdateSavingTypeRequest;
 use App\Models\SavingType;
+use App\Models\Account;
 use App\Services\AuditLogService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -52,12 +53,22 @@ class SavingTypeController extends Controller
         ));
     }
 
-    public function create(): View
-    {
-        $this->authorize('create', SavingType::class);
+	public function create(): View
+	{
+		$this->authorize('create', SavingType::class);
 
-        return view('saving-types.create');
-    }
+		$liabilityAccounts = Account::query()
+			->where('type', Account::TYPE_LIABILITY)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		return view(
+			'saving-types.create',
+			compact('liabilityAccounts')
+		);
+	}
 
     public function store(
         StoreSavingTypeRequest $request
@@ -91,15 +102,32 @@ class SavingTypeController extends Controller
     {
         $this->authorize('view', $savingType);
 
+		$savingType->loadMissing([
+			'liabilityAccount',
+		]);
+
         return view('saving-types.show', compact('savingType'));
     }
 
-    public function edit(SavingType $savingType): View
-    {
-        $this->authorize('update', $savingType);
+	public function edit(SavingType $savingType): View
+	{
+		$this->authorize('update', $savingType);
 
-        return view('saving-types.edit', compact('savingType'));
-    }
+		$liabilityAccounts = Account::query()
+			->where('type', Account::TYPE_LIABILITY)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		return view(
+			'saving-types.edit',
+			compact(
+				'savingType',
+				'liabilityAccounts'
+			)
+		);
+	}
 
     public function update(
         UpdateSavingTypeRequest $request,

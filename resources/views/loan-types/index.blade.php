@@ -144,6 +144,7 @@
 												</button>
 											</form>
 										@endcan
+										
 									</div>
 								</td>
 							</tr>
@@ -217,6 +218,7 @@
                                 </button>
                             </form>
                         @endcan
+						
                     </div>
                 </div>
             @empty

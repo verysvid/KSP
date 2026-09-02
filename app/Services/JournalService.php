@@ -35,7 +35,7 @@ class JournalService
         ) {
             $journal = JournalEntry::create([
                 'branch_id' => $branchId,
-                'journal_no' => $this->generateJournalNo(),
+				'journal_no' => $this->generateJournalNo($branchId),
                 'journal_date' => $journalDate,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
@@ -56,22 +56,23 @@ class JournalService
         });
     }
 
-    protected function generateJournalNo(): string
-    {
-        $prefix = 'JR-' . now()->format('Ym');
+	protected function generateJournalNo(int $branchId): string
+	{
+		$prefix = 'JR-' . now()->format('Ym');
 
-        $last = JournalEntry::query()
-            ->where('journal_no', 'like', $prefix . '-%')
-            ->latest('id')
-            ->first();
+		$last = JournalEntry::withoutGlobalScope('branch')
+			->where('journal_no', 'like', $prefix . '-%')
+			->latest('id')
+			->first();
 
-        $sequence = 0;
+		$sequence = 0;
 
-        if ($last) {
-            $parts = explode('-', $last->journal_no);
-            $sequence = (int) end($parts);
-        }
+		if ($last) {
+			$parts = explode('-', $last->journal_no);
+			$sequence = (int) end($parts);
+		}
 
-        return sprintf('%s-%06d', $prefix, $sequence + 1);
-    }
+		return sprintf('%s-%06d', $prefix, $sequence + 1);
+	}
+
 }

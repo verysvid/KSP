@@ -24,8 +24,10 @@ class DisburseLoanRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('accounts', 'id')
+					->where('type', 'ASSET')
                     ->where('is_cash_bank', true)
-                    ->where('is_active', true),
+                    ->where('is_active', true)
+					->where('is_postable', true),
             ],
 
             'reference_no' => [

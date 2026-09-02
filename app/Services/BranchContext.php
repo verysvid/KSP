@@ -20,11 +20,22 @@ class BranchContext
             && $user->hasRole('SuperAdmin');
     }
 
+    public function isManagerOrPengurus(): bool
+    {
+        $user = $this->getCurrentUser();
+
+        return $user !== null
+            && $user->hasAnyRole([
+                'Manager',
+                'Pengurus',
+            ]);
+    }
+
     public function getCurrentBranchId(): ?int
     {
         $user = $this->getCurrentUser();
 
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -39,7 +50,7 @@ class BranchContext
     {
         $branchId = $this->getCurrentBranchId();
 
-        if (!$branchId) {
+        if (! $branchId) {
             return null;
         }
 

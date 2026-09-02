@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Models\Account;
 
 class StoreSavingTypeRequest extends FormRequest
 {
@@ -25,6 +26,18 @@ class StoreSavingTypeRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
             'amount' => ['nullable', 'numeric', 'min:0'],
+			
+			'liability_account_id' => [
+				'required',
+				'integer',
+				Rule::exists('accounts', 'id')->where(
+					fn ($query) => $query
+						->where('type', Account::TYPE_LIABILITY)
+						->where('is_active', true)
+						->where('is_postable', true)
+				),
+			],
+			
             'is_mandatory' => ['required', 'boolean'],
             'is_withdrawable' => ['required', 'boolean'],
             'is_active' => ['required', 'boolean'],

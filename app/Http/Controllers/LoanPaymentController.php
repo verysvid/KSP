@@ -25,7 +25,10 @@ class LoanPaymentController extends Controller
 
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->can('loan.view'), 403);
+		abort_unless(
+			$request->user()?->can('installment.view'),
+			403
+		);
 
         $query = LoanPayment::query()
             ->with([
@@ -138,8 +141,10 @@ class LoanPaymentController extends Controller
         ]);
 
         $cashAccounts = Account::query()
+			->where('type', Account::TYPE_ASSET)
             ->where('is_cash_bank', true)
             ->where('is_active', true)
+			->where('is_postable', true)
             ->orderBy('code')
             ->get();
 
@@ -155,6 +160,11 @@ class LoanPaymentController extends Controller
         Loan $loan,
         LoanInstallment $installment
     ): RedirectResponse {
+		abort_unless(
+			$request->user()?->can('loan.pay'),
+			403
+		);
+
         $this->ensureLoanAccessible($loan);
 
         $payment = $this->loanPaymentService->payInstallment(
@@ -172,15 +182,20 @@ class LoanPaymentController extends Controller
             );
     }
 
-    protected function ensureLoanAccessible(Loan $loan): void
-    {
-        if ($this->branchContext->isSuperAdmin()) {
-            return;
-        }
+	protected function ensureLoanAccessible(Loan $loan): void 
+	{
+		if ($this->branchContext->isSuperAdmin()) {
+			return;
+		}
 
-        abort_unless(
-            $loan->branch_id === $this->branchContext->getCurrentBranchId(),
-            403
-        );
-    }
+		$branchId = $this->branchContext
+			->getCurrentBranchId();
+
+		abort_unless(
+			$branchId !== null
+			&& (int) $loan->branch_id === (int) $branchId,
+			403
+		);
+	}
+
 }

@@ -121,7 +121,13 @@
                                        class="btn btn-secondary">Detail</a>
 
                                     @can('approve', $transaction)
-                                        <form method="POST"
+										<a
+											href="{{ route('saving-transactions.show', $transaction) }}"
+											class="btn btn-primary">
+											Review & Approve
+										</a>
+
+                                        {{-- <form method="POST"
                                               action="{{ route('saving-transactions.approve', $transaction) }}"
                                               class="approve-saving-transaction-form"
                                               data-transaction-no="{{ $transaction->trx_no }}"
@@ -130,8 +136,10 @@
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="btn btn-primary">Approve</button>
-                                        </form>
+                                        </form> --}}
                                     @endcan
+
+
                                 </div>
                             </td>
                         </tr>

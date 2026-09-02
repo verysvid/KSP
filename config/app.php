@@ -13,7 +13,11 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'KSP'),
+	
+	'alt_name' => env('APP_ALT_NAME', 'Koperasi Simpan Pinjam'),
+
+	'corporate_name' => env('CORPORATE_NAME', 'DPMPTSP'),
 
     /*
     |--------------------------------------------------------------------------

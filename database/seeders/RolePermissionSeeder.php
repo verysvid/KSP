@@ -21,11 +21,22 @@ class RolePermissionSeeder extends Seeder
             // Dashboard
             'dashboard.view',
 
+            // Branch
+            'branch.view',
+            'branch.create',
+            'branch.edit',
+            'branch.delete',
+
             // Anggota
             'member.view',
             'member.create',
             'member.edit',
             'member.delete',
+
+            // Jenis Simpanan
+            'saving-type.view',
+            'saving-type.create',
+            'saving-type.edit',
 
             // Simpanan
             'saving.view',
@@ -33,26 +44,45 @@ class RolePermissionSeeder extends Seeder
             'saving.edit',
             'saving.delete',
 
+            // Transaksi Simpanan
+            'saving-transaction.view',
+            'saving-transaction.create',
+            'saving-transaction.approve',
+            'saving-transaction.reject',
+
             // Pinjaman
             'loan.view',
             'loan.create',
             'loan.edit',
             'loan.delete',
+            'loan.submit',
             'loan.approve',
+            'loan.reject',
+            'loan.disburse',
+            'loan.pay',
 
             // Angsuran
             'installment.view',
             'installment.create',
             'installment.edit',
 
-            // Accounting
-            'accounting.view',
-            'journal.view',
-            'journal.create',
-            'journal.edit',
+			// Accounting
+			'accounting.view',
+
+			// Chart Of Account
+			'account.view',
+			'account.create',
+			'account.edit',
+
+			// Journal
+			'journal.view',
+			'journal.create',
+			'journal.edit',
 
             // Reports
             'report.view',
+            'member-saving-report.view',
+            'member-loan-report.view',
 
             // SHU
             'shu.view',
@@ -67,12 +97,14 @@ class RolePermissionSeeder extends Seeder
             'user.create',
             'user.edit',
             'user.delete',
+            'user.restore',
 
-            // Branch
-            'branch.view',
-            'branch.create',
-            'branch.edit',
-            'branch.delete',
+            // Role Management
+            'role.view',
+            'role.edit',
+
+            // Audit Log
+            'audit-log.view',
         ];
 
         foreach ($permissions as $permission) {
@@ -125,56 +157,83 @@ class RolePermissionSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
-        | Manager
+        | Manager & Pengurus
         |--------------------------------------------------------------------------
         */
 
-        $manager->syncPermissions([
+        $managerPengurusPermissions = [
+
+            // Dashboard
             'dashboard.view',
 
+            // Cabang
+            'branch.view',
+
+            // Anggota
             'member.view',
             'member.create',
             'member.edit',
 
-            'saving.view',
-            'saving.create',
-            'saving.edit',
+            // Jenis Simpanan
+            'saving-type.view',
+            'saving-type.create',
+            'saving-type.edit',
 
+            // Transaksi Simpanan
+            'saving-transaction.view',
+            'saving-transaction.create',
+            'saving-transaction.approve',
+            'saving-transaction.reject',
+
+            // Pinjaman
             'loan.view',
             'loan.create',
             'loan.edit',
+            'loan.submit',
             'loan.approve',
+            'loan.reject',
+            'loan.disburse',
 
+            // Pembayaran Angsuran
             'installment.view',
             'installment.create',
+            'installment.edit',
+            'loan.pay',
 
+			// Accounting
+			'accounting.view',
+
+			// Chart Of Account
+			'account.view',
+			'account.create',
+			'account.edit',
+
+			// Journal
+			'journal.view',
+			'journal.create',
+			'journal.edit',
+
+            // Reports
             'report.view',
 
-            'shu.view',
-        ]);
+            // User Management
+            'user.view',
+            'user.create',
+            'user.edit',
+            'user.delete',
+            'user.restore',
 
-        /*
-        |--------------------------------------------------------------------------
-        | Pengurus
-        |--------------------------------------------------------------------------
-        */
+            // Audit Log
+            'audit-log.view',
+        ];
 
-        $pengurus->syncPermissions([
-            'dashboard.view',
+        $manager->syncPermissions(
+            $managerPengurusPermissions
+        );
 
-            'member.view',
-            'member.create',
-            'member.edit',
-
-            'saving.view',
-            'saving.create',
-
-            'loan.view',
-            'loan.create',
-
-            'installment.view',
-            'installment.create',
-        ]);
+        $pengurus->syncPermissions(
+            $managerPengurusPermissions
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -186,10 +245,16 @@ class RolePermissionSeeder extends Seeder
             'dashboard.view',
 
             'saving.view',
+            'saving-transaction.view',
+
             'loan.view',
             'installment.view',
 
             'accounting.view',
+
+			'account.view',
+			'account.create',
+			'account.edit',
 
             'journal.view',
             'journal.create',
@@ -211,15 +276,8 @@ class RolePermissionSeeder extends Seeder
         */
 
         $anggota->syncPermissions([
-            'dashboard.view',
-
-            'member.view',
-
-            'saving.view',
-
-            'loan.view',
-
-            'installment.view',
+            'member-saving-report.view',
+            'member-loan-report.view',
         ]);
     }
 }

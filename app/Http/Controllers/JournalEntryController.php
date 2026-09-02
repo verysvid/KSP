@@ -75,12 +75,16 @@ class JournalEntryController extends Controller
     {
         abort_unless($request->user()?->can('journal.view'), 403);
 
-        if (!$this->branchContext->isSuperAdmin()) {
-            abort_unless(
-                $journalEntry->branch_id === $this->branchContext->getCurrentBranchId(),
-                403
-            );
-        }
+		if (! $this->branchContext->isSuperAdmin()) {
+			$branchId = $this->branchContext
+				->getCurrentBranchId();
+
+			abort_unless(
+				$branchId !== null
+				&& (int) $journalEntry->branch_id === (int) $branchId,
+				403
+			);
+		}
 
         $journalEntry->load([
             'branch',

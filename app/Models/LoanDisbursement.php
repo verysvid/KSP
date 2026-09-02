@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\BelongsToBranch;
 
 class LoanDisbursement extends Model
 {
+	use BelongsToBranch;
+	 
     protected $fillable = [
         'loan_id',
         'branch_id',

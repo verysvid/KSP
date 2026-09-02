@@ -299,6 +299,143 @@
             <p class="form-error">{{ $message }}</p>
         @enderror
     </div>
+	
+	{{-- =========================================================
+		 Mapping Akun / Chart of Accounts
+	========================================================= --}}
+
+	<div class="md:col-span-2">
+		<div class="border-t border-gray-200 pt-5 dark:border-gray-700">
+			<h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+				Mapping Akun
+			</h3>
+
+			<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+				Tentukan akun yang digunakan untuk penjurnalan transaksi pinjaman.
+			</p>
+		</div>
+	</div>
+
+
+	{{-- Piutang Pinjaman --}}
+	<div>
+		<label
+			for="receivable_account_id"
+			class="form-label"
+		>
+			Akun Piutang Pinjaman
+			<span class="text-red-500">*</span>
+		</label>
+
+		<select
+			id="receivable_account_id"
+			name="receivable_account_id"
+			class="form-select"
+			required
+		>
+			<option value="">
+				Pilih Akun Piutang
+			</option>
+
+			@foreach($receivableAccounts as $account)
+				<option
+					value="{{ $account->id }}"
+					@selected(
+						(string) old(
+							'receivable_account_id',
+							$loanType->receivable_account_id ?? ''
+						) === (string) $account->id
+					)
+				>
+					{{ $account->code }} - {{ $account->name }}
+				</option>
+			@endforeach
+		</select>
+
+		@error('receivable_account_id')
+			<p class="form-error">{{ $message }}</p>
+		@enderror
+	</div>
+
+
+	{{-- Pendapatan Bunga --}}
+	<div>
+		<label
+			for="interest_income_account_id"
+			class="form-label"
+		>
+			Akun Pendapatan Bunga
+			<span class="text-red-500">*</span>
+		</label>
+
+		<select
+			id="interest_income_account_id"
+			name="interest_income_account_id"
+			class="form-select"
+			required
+		>
+			<option value="">
+				Pilih Akun Pendapatan Bunga
+			</option>
+
+			@foreach($interestIncomeAccounts as $account)
+				<option
+					value="{{ $account->id }}"
+					@selected(
+						(string) old(
+							'interest_income_account_id',
+							$loanType->interest_income_account_id ?? ''
+						) === (string) $account->id
+					)
+				>
+					{{ $account->code }} - {{ $account->name }}
+				</option>
+			@endforeach
+		</select>
+
+		@error('interest_income_account_id')
+			<p class="form-error">{{ $message }}</p>
+		@enderror
+	</div>
+
+
+	{{-- Pendapatan Denda --}}
+	<div class="md:col-span-2">
+		<label
+			for="penalty_income_account_id"
+			class="form-label"
+		>
+			Akun Pendapatan Denda
+		</label>
+
+		<select
+			id="penalty_income_account_id"
+			name="penalty_income_account_id"
+			class="form-select"
+		>
+			<option value="">
+				Pilih Akun Pendapatan Denda
+			</option>
+
+			@foreach($penaltyIncomeAccounts as $account)
+				<option
+					value="{{ $account->id }}"
+					@selected(
+						(string) old(
+							'penalty_income_account_id',
+							$loanType->penalty_income_account_id ?? ''
+						) === (string) $account->id
+					)
+				>
+					{{ $account->code }} - {{ $account->name }}
+				</option>
+			@endforeach
+		</select>
+
+		@error('penalty_income_account_id')
+			<p class="form-error">{{ $message }}</p>
+		@enderror
+	</div>
 
     <div class="md:col-span-2">
         <label class="inline-flex cursor-pointer items-center gap-3">

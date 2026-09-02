@@ -172,6 +172,7 @@
                                             </button>
                                         </form>
                                     @endcan
+									
                                 </div>
                             </td>
                         </tr>
@@ -239,6 +240,7 @@
                                 Edit
                             </a>
                         @endcan
+
                     </div>
                 </div>
             @empty

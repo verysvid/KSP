@@ -10,20 +10,22 @@ class SavingTransaction extends Model
 {
     use BelongsToBranch;
 
-    protected $fillable = [
-        'branch_id',
-        'member_id',
-        'saving_type_id',
-        'transaction_date',
-        'period',
-        'trx_no',
-        'debit',
-        'credit',
-        'status',
-        'approved_by',
-        'approved_at',
-        'remarks',
-    ];
+	protected $fillable = [
+		'branch_id',
+		'member_id',
+		'saving_type_id',
+		'cash_account_id',
+		'transaction_date',
+		'period',
+		'trx_no',
+		'debit',
+		'credit',
+		'status',
+		'approved_by',
+		'approved_at',
+		'remarks',
+		'journal_entry_id',
+	];
 
     protected $casts = [
         'transaction_date' => 'date',
@@ -46,6 +48,22 @@ class SavingTransaction extends Model
     {
         return $this->belongsTo(SavingType::class);
     }
+
+	public function cashAccount(): BelongsTo
+	{
+		return $this->belongsTo(
+			Account::class,
+			'cash_account_id'
+		);
+	}
+
+	public function journalEntry(): BelongsTo
+	{
+		return $this->belongsTo(
+			JournalEntry::class,
+			'journal_entry_id'
+		);
+	}
 
     public function approver(): BelongsTo
     {

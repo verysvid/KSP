@@ -6,34 +6,94 @@
         description="{{ $savingTransaction->trx_no }}">
 
         <x-slot name="actions">
-            <a href="{{ route('saving-transactions.index') }}"
-               class="btn btn-secondary">Kembali</a>
-
-            @can('approve', $savingTransaction)
-                <form method="POST"
-                      action="{{ route('saving-transactions.approve', $savingTransaction) }}"
-                      class="approve-saving-transaction-form">
-                    @csrf
-                    @method('PATCH')
-                    <button type="submit" class="btn btn-primary">Approve</button>
-                </form>
-            @endcan
+            <a
+                href="{{ route('saving-transactions.index') }}"
+                class="btn btn-secondary">
+                Kembali
+            </a>
 
             @can('reject', $savingTransaction)
-                <button type="button"
+                @if($savingTransaction->status === 'PENDING')
+                    <button
+                        type="button"
                         class="btn btn-danger"
                         id="rejectTransactionBtn">
-                    Reject
-                </button>
+                        Reject
+                    </button>
+                @endif
             @endcan
         </x-slot>
     </x-page-header>
+
+    @can('approve', $savingTransaction)
+        @if($savingTransaction->status === 'PENDING')
+            <div class="mb-6">
+                <x-card
+                    title="Approval Transaksi"
+                    description="Pilih akun Kas / Bank sebelum transaksi disetujui dan diposting ke jurnal.">
+
+                    <form
+                        id="approveSavingTransactionForm"
+                        method="POST"
+                        action="{{ route('saving-transactions.approve', $savingTransaction) }}"
+                        class="approve-saving-transaction-form">
+
+                        @csrf
+                        @method('PATCH')
+
+                        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                            <div>
+                                <label for="cash_account_id" class="form-label">
+                                    Kas / Bank
+                                    <span class="text-red-500">*</span>
+                                </label>
+
+                                <select
+                                    id="cash_account_id"
+                                    name="cash_account_id"
+                                    class="form-select"
+                                    required>
+
+                                    <option value="">Pilih Kas / Bank</option>
+
+                                    @foreach($cashAccounts as $account)
+                                        <option
+                                            value="{{ $account->id }}"
+                                            @selected(
+                                                (string) old('cash_account_id')
+                                                === (string) $account->id
+                                            )>
+                                            {{ $account->code }} - {{ $account->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+
+                                @error('cash_account_id')
+                                    <p class="form-error">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="mt-5 flex justify-end">
+                            <button
+                                type="submit"
+                                class="btn btn-primary">
+                                Approve Transaksi
+                            </button>
+                        </div>
+                    </form>
+                </x-card>
+            </div>
+        @endif
+    @endcan
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <x-card>
             <div class="text-center">
                 <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl
-                            {{ $savingTransaction->credit > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' }}">
+                            {{ $savingTransaction->credit > 0
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' }}">
                     {{ $savingTransaction->credit > 0 ? '↑' : '↓' }}
                 </div>
 
@@ -51,16 +111,24 @@
             </div>
         </x-card>
 
-        <x-card class="lg:col-span-2"
-                title="Informasi Transaksi"
-                description="Detail transaksi simpanan anggota.">
+        <x-card
+            class="lg:col-span-2"
+            title="Informasi Transaksi"
+            description="Detail transaksi simpanan anggota.">
 
             <div class="info-list">
                 <div class="info-row"><span>No. Transaksi</span><strong>{{ $savingTransaction->trx_no }}</strong></div>
                 <div class="info-row"><span>Tanggal</span><strong>{{ $savingTransaction->transaction_date?->format('d/m/Y') }}</strong></div>
                 <div class="info-row"><span>Periode</span><strong>{{ $savingTransaction->period }}</strong></div>
                 <div class="info-row"><span>Cabang</span><strong>{{ $savingTransaction->branch?->name ?? '-' }}</strong></div>
-                <div class="info-row"><span>Anggota</span><strong>{{ $savingTransaction->member?->member_number }} - {{ $savingTransaction->member?->name }}</strong></div>
+                <div class="info-row">
+                    <span>Anggota</span>
+                    <strong>
+                        {{ $savingTransaction->member?->member_number }}
+                        -
+                        {{ $savingTransaction->member?->name }}
+                    </strong>
+                </div>
                 <div class="info-row"><span>Jenis Simpanan</span><strong>{{ $savingTransaction->savingType?->name ?? '-' }}</strong></div>
                 <div class="info-row"><span>Saldo Approved Saat Ini</span><strong>Rp {{ number_format($approvedBalance, 0, ',', '.') }}</strong></div>
                 <div class="info-row"><span>Approver</span><strong>{{ $savingTransaction->approver?->name ?? '-' }}</strong></div>
@@ -70,84 +138,131 @@
         </x-card>
     </div>
 
+    @if($savingTransaction->journalEntry)
+        <div class="mt-6">
+            <x-card title="Informasi Jurnal">
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+                    <div>
+                        <div class="text-sm text-slate-500 dark:text-slate-400">
+                            No. Jurnal
+                        </div>
+                        <div class="mt-1 font-semibold text-slate-900 dark:text-white">
+                            {{ $savingTransaction->journalEntry->journal_no }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm text-slate-500 dark:text-slate-400">
+                            Kas / Bank
+                        </div>
+                        <div class="mt-1 font-semibold text-slate-900 dark:text-white">
+                            {{ $savingTransaction->cashAccount?->code ?? '-' }}
+                            -
+                            {{ $savingTransaction->cashAccount?->name ?? '-' }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm text-slate-500 dark:text-slate-400">
+                            Tanggal Jurnal
+                        </div>
+                        <div class="mt-1 font-semibold text-slate-900 dark:text-white">
+                            {{ $savingTransaction->journalEntry->journal_date?->format('d/m/Y') }}
+                        </div>
+                    </div>
+                </div>
+
+                @if(Route::has('journals.show'))
+                    <div class="mt-5 flex justify-end">
+                        <a
+                            href="{{ route('journals.show', $savingTransaction->journalEntry) }}"
+                            class="btn btn-secondary">
+                            Lihat Jurnal
+                        </a>
+                    </div>
+                @endif
+            </x-card>
+        </div>
+    @endif
+
     @can('reject', $savingTransaction)
-        <form method="POST"
-              action="{{ route('saving-transactions.reject', $savingTransaction) }}"
-              id="rejectTransactionForm"
-              class="hidden">
-            @csrf
-            @method('PATCH')
-            <input type="hidden"
-                   name="reject_reason"
-                   id="reject_reason">
-        </form>
+        @if($savingTransaction->status === 'PENDING')
+            <form
+                method="POST"
+                action="{{ route('saving-transactions.reject', $savingTransaction) }}"
+                id="rejectTransactionForm"
+                class="hidden">
+                @csrf
+                @method('PATCH')
+
+                <input
+                    type="hidden"
+                    name="reject_reason"
+                    id="reject_reason">
+            </form>
+        @endif
     @endcan
 
     @push('scripts')
-    <script>
-        document.querySelectorAll('.approve-saving-transaction-form').forEach((form) => {
-            form.addEventListener('submit', function (event) {
-                if (!window.swalConfirm) return;
+        <script>
+            document
+                .querySelectorAll('.approve-saving-transaction-form')
+                .forEach((form) => {
+                    form.addEventListener('submit', function (event) {
+                        if (!window.swalConfirm) {
+                            return;
+                        }
 
-                event.preventDefault();
+                        event.preventDefault();
 
-                window.swalConfirm({
-                    icon: 'question',
-                    title: 'Approve Transaksi?',
-                    text: 'Transaksi akan disetujui dan masuk ke saldo approved anggota.',
-                    confirmButtonText: 'Ya, Approve',
-                    confirmButtonColor: '#16a34a',
-                }).then((result) => {
-                    if (result.isConfirmed) form.submit();
+                        window.swalConfirm({
+                            icon: 'question',
+                            title: 'Approve Transaksi?',
+                            text: 'Transaksi akan disetujui, masuk ke saldo approved anggota, dan jurnal akuntansi akan dibuat.',
+                            confirmButtonText: 'Ya, Approve',
+                            confirmButtonColor: '#16a34a',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.submit();
+                            }
+                        });
+                    });
                 });
-            });
-        });
 
-		const rejectButton = document.getElementById('rejectTransactionBtn');
+            const rejectButton = document.getElementById('rejectTransactionBtn');
 
-		if (rejectButton) {
-			rejectButton.addEventListener('click', function () {
+            if (rejectButton) {
+                rejectButton.addEventListener('click', function () {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Reject Transaksi?',
+                        input: 'textarea',
+                        inputLabel: 'Alasan penolakan',
+                        inputPlaceholder: 'Masukkan alasan penolakan...',
+                        inputAttributes: {
+                            'aria-label': 'Masukkan alasan penolakan'
+                        },
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Reject',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#dc2626',
+                        inputValidator: (value) => {
+                            if (!value || !value.trim()) {
+                                return 'Alasan penolakan wajib diisi.';
+                            }
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            document.getElementById('reject_reason').value =
+                                result.value.trim();
 
-				Swal.fire({
-					icon: 'warning',
-					title: 'Reject Transaksi?',
-					input: 'textarea',
-					inputLabel: 'Alasan penolakan',
-					inputPlaceholder: 'Masukkan alasan penolakan...',
-					inputAttributes: {
-						'aria-label': 'Masukkan alasan penolakan'
-					},
-
-					showCancelButton: true,
-
-					confirmButtonText: 'Ya, Reject',
-					cancelButtonText: 'Batal',
-
-					confirmButtonColor: '#dc2626',
-
-					inputValidator: (value) => {
-						if (!value || !value.trim()) {
-							return 'Alasan penolakan wajib diisi.';
-						}
-					}
-
-				}).then((result) => {
-
-					if (result.isConfirmed) {
-
-						document.getElementById('reject_reason').value =
-							result.value.trim();
-
-						document.getElementById(
-							'rejectTransactionForm'
-						).submit();
-					}
-
-				});
-
-			});
-		}
-
-    </script>
+                            document
+                                .getElementById('rejectTransactionForm')
+                                .submit();
+                        }
+                    });
+                });
+            }
+        </script>
     @endpush
 </x-app-layout>

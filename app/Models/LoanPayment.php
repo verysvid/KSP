@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\BelongsToBranch;
 
 class LoanPayment extends Model
 {
+	use BelongsToBranch;
+	
     protected $fillable = [
         'loan_id',
         'loan_installment_id',

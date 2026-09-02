@@ -59,10 +59,8 @@ class LoanPermissionSeeder extends Seeder
                 'loan.disburse',
                 'loan.pay',
             ],
-
-            'Anggota' => [
-                'loan.view',
-            ],
+			
+			'Anggota' => [],
         ];
 
         foreach ($rolePermissions as $roleName => $rolePermissionNames) {
@@ -73,6 +71,15 @@ class LoanPermissionSeeder extends Seeder
             if (!$role) {
                 continue;
             }
+
+			if ($roleName === 'Anggota') {
+				foreach ($permissions as $permission) {
+					if ($role->hasPermissionTo($permission)) {
+						$role->revokePermissionTo($permission);
+					}
+				}
+				continue;
+			}
 
             $role->givePermissionTo($rolePermissionNames);
         }

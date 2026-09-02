@@ -6,10 +6,7 @@
         description="Buat setoran atau penarikan simpanan anggota." />
 
     <div class="mx-auto max-w-4xl">
-        <x-card
-            title="Informasi Transaksi"
-            description="Transaksi baru akan berstatus PENDING sampai disetujui.">
-
+        <x-card title="Informasi Transaksi" description="Transaksi baru akan berstatus PENDING sampai disetujui.">
             <form
                 method="POST"
                 action="{{ route('saving-transactions.store') }}"
@@ -19,6 +16,7 @@
                         'member_number' => $member->member_number,
                         'name' => $member->name,
                         'label' => $member->member_number . ' - ' . $member->name,
+                        'amount_saving' => $member->amount_saving !== null ? (float) $member->amount_saving : null,
                     ])->values()),
                     @js($savingTypes->map(fn ($type) => [
                         'id' => $type->id,
@@ -37,17 +35,13 @@
                 @csrf
 
                 <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-
                     <div class="relative md:col-span-2">
-                        <label for="member_search" class="form-label">
-                            Anggota <span class="text-red-500">*</span>
-                        </label>
-
+                        <label for="member_search" class="form-label">Anggota <span class="text-red-500">*</span></label>
                         <input
                             id="member_search"
                             type="text"
                             x-model="memberSearch"
-                            @input="memberOpen = true; memberId = ''"
+                            @input="memberOpen = true; memberId = ''; savingTypeChanged()"
                             @focus="memberOpen = true"
                             @keydown.escape="memberOpen = false"
                             @keydown.arrow-down.prevent="moveMember(1)"
@@ -57,7 +51,6 @@
                             placeholder="Ketik nomor anggota atau nama anggota..."
                             autocomplete="off"
                         >
-
                         <input type="hidden" name="member_id" :value="memberId">
 
                         <div
@@ -68,11 +61,8 @@
                             class="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
                         >
                             <template x-if="filteredMembers.length === 0">
-                                <div class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
-                                    Anggota tidak ditemukan.
-                                </div>
+                                <div class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">Anggota tidak ditemukan.</div>
                             </template>
-
                             <template x-for="(member, index) in filteredMembers" :key="member.id">
                                 <button
                                     type="button"
@@ -86,88 +76,43 @@
                                 </button>
                             </template>
                         </div>
-
-                        @error('member_id')
-                            <p class="form-error">{{ $message }}</p>
-                        @enderror
+                        @error('member_id') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="saving_type_id" class="form-label">
-                            Jenis Simpanan <span class="text-red-500">*</span>
-                        </label>
-
-                        <select
-                            id="saving_type_id"
-                            name="saving_type_id"
-                            x-model="savingTypeId"
-                            @change="savingTypeChanged"
-                            required
-                            class="form-select"
-                        >
+                        <label for="saving_type_id" class="form-label">Jenis Simpanan <span class="text-red-500">*</span></label>
+                        <select id="saving_type_id" name="saving_type_id" x-model="savingTypeId" @change="savingTypeChanged" required class="form-select">
                             <option value="">Pilih Jenis Simpanan</option>
                             @foreach($savingTypes as $type)
-                                <option value="{{ $type->id }}">
-                                    {{ $type->code }} - {{ $type->name }}
-                                </option>
+                                <option value="{{ $type->id }}">{{ $type->code }} - {{ $type->name }}</option>
                             @endforeach
                         </select>
-
                         <template x-if="selectedSavingType">
-                            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                <span x-text="savingTypeInfo"></span>
-                            </div>
+                            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400"><span x-text="savingTypeInfo"></span></div>
                         </template>
-
-                        @error('saving_type_id')
-                            <p class="form-error">{{ $message }}</p>
-                        @enderror
+                        @error('saving_type_id') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="transaction_type" class="form-label">
-                            Jenis Transaksi <span class="text-red-500">*</span>
-                        </label>
-
+                        <label for="transaction_type" class="form-label">Jenis Transaksi <span class="text-red-500">*</span></label>
                         <select id="transaction_type" name="transaction_type" required class="form-select">
                             <option value="SETORAN" @selected(old('transaction_type', 'SETORAN') === 'SETORAN')>Setoran</option>
                             <option value="PENARIKAN" @selected(old('transaction_type') === 'PENARIKAN')>Penarikan</option>
                         </select>
-
-                        @error('transaction_type')
-                            <p class="form-error">{{ $message }}</p>
-                        @enderror
+                        @error('transaction_type') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="transaction_date" class="form-label">
-                            Tanggal Transaksi <span class="text-red-500">*</span>
-                        </label>
-
-                        <input
-                            id="transaction_date"
-                            name="transaction_date"
-                            type="date"
-                            required
-                            value="{{ old('transaction_date', now()->format('Y-m-d')) }}"
-                            class="form-control"
-                        >
-
-                        @error('transaction_date')
-                            <p class="form-error">{{ $message }}</p>
-                        @enderror
+                        <label for="transaction_date" class="form-label">Tanggal Transaksi <span class="text-red-500">*</span></label>
+                        <input id="transaction_date" name="transaction_date" type="date" required
+                            value="{{ old('transaction_date', now()->format('Y-m-d')) }}" class="form-control">
+                        @error('transaction_date') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="amount_display" class="form-label">
-                            Nominal <span class="text-red-500">*</span>
-                        </label>
-
+                        <label for="amount_display" class="form-label">Nominal <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                                Rp
-                            </span>
-
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm font-semibold text-slate-500 dark:text-slate-400">Rp</span>
                             <input
                                 id="amount_display"
                                 type="text"
@@ -181,29 +126,22 @@
                                 autocomplete="off"
                             >
                         </div>
-
                         <input type="hidden" name="amount" :value="amountRaw">
 
                         <template x-if="fixedAmount">
-                            <p class="mt-1 text-xs text-indigo-600 dark:text-indigo-400">
-                                Nominal otomatis mengikuti Master Jenis Simpanan.
-                            </p>
+                            <p class="mt-1 text-xs text-indigo-600 dark:text-indigo-400">Nominal otomatis mengikuti Master Jenis Simpanan.</p>
                         </template>
-
-                        @error('amount')
-                            <p class="form-error">{{ $message }}</p>
-                        @enderror
+                        <template x-if="memberDefaultAmount">
+                            <p class="mt-1 text-xs text-indigo-600 dark:text-indigo-400">Nominal default mengikuti Simpanan Manasuka anggota dan tetap dapat diedit.</p>
+                        </template>
+                        @error('amount') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="md:col-span-2">
                         <label for="remarks" class="form-label">Keterangan</label>
                         <textarea id="remarks" name="remarks" rows="3" class="form-textarea">{{ old('remarks') }}</textarea>
-
-                        @error('remarks')
-                            <p class="form-error">{{ $message }}</p>
-                        @enderror
+                        @error('remarks') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
-
                 </div>
 
                 <div class="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-800">
@@ -217,39 +155,28 @@
     @push('scripts')
         <script>
             document.addEventListener('alpine:init', () => {
-                Alpine.data('savingTransactionForm', (
+                Alpine.data('savingTransactionForm', (members, savingTypes, oldMemberId, oldSavingTypeId, oldAmount) => ({
                     members,
                     savingTypes,
-                    oldMemberId,
-                    oldSavingTypeId,
-                    oldAmount
-                ) => ({
-                    members,
-                    savingTypes,
-
                     memberId: oldMemberId ? String(oldMemberId) : '',
                     memberSearch: '',
                     memberOpen: false,
                     memberHighlight: 0,
-
                     savingTypeId: oldSavingTypeId ? String(oldSavingTypeId) : '',
                     amountRaw: '',
                     amountDisplay: '',
                     fixedAmount: false,
+                    memberDefaultAmount: false,
 
                     init() {
                         if (this.memberId) {
-                            const member = this.members.find(
-                                item => String(item.id) === this.memberId
-                            );
-
-                            if (member) {
-                                this.memberSearch = member.label;
-                            }
+                            const member = this.members.find(item => String(item.id) === this.memberId);
+                            if (member) this.memberSearch = member.label;
                         }
 
                         if (oldAmount !== null && oldAmount !== undefined && String(oldAmount) !== '') {
                             this.setAmount(oldAmount);
+                            this.setAmountSourceFlags();
                         } else {
                             this.savingTypeChanged();
                         }
@@ -257,17 +184,15 @@
 
                     get filteredMembers() {
                         const keyword = this.memberSearch.toLowerCase().trim();
+                        if (!keyword) return this.members.slice(0, 15);
+                        return this.members.filter(member =>
+                            String(member.member_number).toLowerCase().includes(keyword) ||
+                            String(member.name).toLowerCase().includes(keyword)
+                        ).slice(0, 25);
+                    },
 
-                        if (!keyword) {
-                            return this.members.slice(0, 15);
-                        }
-
-                        return this.members
-                            .filter(member =>
-                                String(member.member_number).toLowerCase().includes(keyword) ||
-                                String(member.name).toLowerCase().includes(keyword)
-                            )
-                            .slice(0, 25);
+                    get selectedMember() {
+                        return this.members.find(item => String(item.id) === String(this.memberId)) || null;
                     },
 
                     selectMember(member) {
@@ -275,16 +200,14 @@
                         this.memberSearch = member.label;
                         this.memberOpen = false;
                         this.memberHighlight = 0;
+                        this.savingTypeChanged();
                     },
 
                     moveMember(step) {
                         if (!this.memberOpen) this.memberOpen = true;
-
                         const total = this.filteredMembers.length;
                         if (!total) return;
-
                         this.memberHighlight += step;
-
                         if (this.memberHighlight < 0) this.memberHighlight = total - 1;
                         if (this.memberHighlight >= total) this.memberHighlight = 0;
                     },
@@ -295,78 +218,83 @@
                     },
 
                     get selectedSavingType() {
-                        return this.savingTypes.find(
-                            item => String(item.id) === String(this.savingTypeId)
-                        ) || null;
+                        return this.savingTypes.find(item => String(item.id) === String(this.savingTypeId)) || null;
                     },
 
                     get savingTypeInfo() {
                         const type = this.selectedSavingType;
                         if (!type) return '';
-
                         const info = [];
-
                         if (type.is_mandatory) info.push('Wajib');
                         info.push(type.is_withdrawable ? 'Dapat ditarik' : 'Tidak dapat ditarik');
-
-                        if (type.amount !== null) {
-                            info.push('Nominal Master Rp ' + this.formatCurrency(type.amount));
+                        if (type.amount !== null) info.push('Nominal Master Rp ' + this.formatCurrency(type.amount));
+                        if (String(type.code).toUpperCase() === 'MANASUKA' && this.selectedMember?.amount_saving !== null) {
+                            info.push('Default Anggota Rp ' + this.formatCurrency(this.selectedMember.amount_saving));
                         }
-
                         return info.join(' • ');
+                    },
+
+                    setAmountSourceFlags() {
+                        const type = this.selectedSavingType;
+                        const code = type ? String(type.code).toUpperCase() : '';
+                        this.fixedAmount = (code === 'POKOK' || code === 'WAJIB') && type.amount !== null;
+                        this.memberDefaultAmount = code === 'MANASUKA' && this.selectedMember?.amount_saving !== null;
                     },
 
                     savingTypeChanged() {
                         const type = this.selectedSavingType;
                         this.fixedAmount = false;
-
+                        this.memberDefaultAmount = false;
                         if (!type) return;
 
                         const code = String(type.code).toUpperCase();
-
                         if ((code === 'POKOK' || code === 'WAJIB') && type.amount !== null) {
                             this.fixedAmount = true;
                             this.setAmount(type.amount);
+                            return;
+                        }
+
+                        if (code === 'MANASUKA') {
+                            const member = this.selectedMember;
+                            if (member && member.amount_saving !== null) {
+                                this.memberDefaultAmount = true;
+                                this.setAmount(member.amount_saving);
+                            } else {
+                                this.clearAmount();
+                            }
                         }
                     },
 
                     formatAmountInput(event) {
                         const digits = String(event.target.value || '').replace(/[^\d]/g, '');
-
                         this.amountRaw = digits ? String(parseInt(digits, 10)) : '';
                         this.amountDisplay = this.amountRaw ? this.formatCurrency(this.amountRaw) : '';
                     },
 
                     setAmount(value) {
-                        const numeric = String(value).replace(/[^\d]/g, '');
+                        const numeric = Math.floor(Number(value || 0));
+                        this.amountRaw = numeric > 0 || Number(value) === 0 ? String(numeric) : '';
+                        this.amountDisplay = this.amountRaw !== '' ? this.formatCurrency(this.amountRaw) : '';
+                    },
 
-                        this.amountRaw = numeric ? String(parseInt(numeric, 10)) : '';
-                        this.amountDisplay = this.amountRaw ? this.formatCurrency(this.amountRaw) : '';
+                    clearAmount() {
+                        this.amountRaw = '';
+                        this.amountDisplay = '';
                     },
 
                     formatCurrency(value) {
-                        return new Intl.NumberFormat('id-ID', {
-                            maximumFractionDigits: 0
-                        }).format(Number(value || 0));
+                        return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(value || 0));
                     },
 
                     prepareSubmit(event) {
                         if (!this.memberId) {
                             event.preventDefault();
-
-                            if (window.swalError) {
-                                window.swalError('Silakan pilih anggota terlebih dahulu.');
-                            }
-
+                            if (window.swalError) window.swalError('Silakan pilih anggota terlebih dahulu.');
                             return;
                         }
-
                         if (!this.amountRaw || Number(this.amountRaw) <= 0) {
                             event.preventDefault();
-
-                            if (window.swalError) {
-                                window.swalError('Nominal transaksi harus lebih besar dari 0.');
-                            }
+                            if (window.swalError) window.swalError('Nominal transaksi harus lebih besar dari 0.');
                         }
                     }
                 }));

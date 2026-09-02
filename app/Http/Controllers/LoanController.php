@@ -154,6 +154,11 @@ class LoanController extends Controller
 
     public function store(StoreLoanRequest $request): RedirectResponse
     {
+		abort_unless(
+			$request->user()?->can('loan.create'),
+			403
+		);
+
         $validated = $request->validated();
 
         $branchId = $this->resolveBranchId($validated['branch_id'] ?? null);
@@ -292,6 +297,11 @@ class LoanController extends Controller
 
     public function update(UpdateLoanRequest $request, Loan $loan): RedirectResponse
     {
+		abort_unless(
+			$request->user()?->can('loan.edit'),
+			403
+		);
+
         $this->ensureLoanAccessible($loan);
 
         abort_unless(
@@ -474,6 +484,11 @@ class LoanController extends Controller
         RejectLoanRequest $request,
         Loan $loan
     ): RedirectResponse {
+		abort_unless(
+			$request->user()?->can('loan.reject'),
+			403
+		);
+
         $this->ensureLoanAccessible($loan);
 
         abort_unless(
@@ -525,17 +540,21 @@ class LoanController extends Controller
         return $branchId;
     }
 
-    protected function ensureLoanAccessible(Loan $loan): void
-    {
-        if ($this->branchContext->isSuperAdmin()) {
-            return;
-        }
+	protected function ensureLoanAccessible(Loan $loan): void 
+	{
+		if ($this->branchContext->isSuperAdmin()) {
+			return;
+		}
 
-        abort_unless(
-            $loan->branch_id === $this->branchContext->getCurrentBranchId(),
-            403
-        );
-    }
+		$branchId = $this->branchContext
+			->getCurrentBranchId();
+
+		abort_unless(
+			$branchId !== null
+			&& (int) $loan->branch_id === (int) $branchId,
+			403
+		);
+	}
 
     protected function ensureMemberBelongsToBranch(int $memberId, int $branchId): void
     {

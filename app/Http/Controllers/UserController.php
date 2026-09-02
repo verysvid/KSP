@@ -17,6 +17,13 @@ class UserController extends Controller
 {
     use AuthorizesRequests;
 
+    private const MANAGEABLE_ROLES = [
+        'Manager',
+        'Pengurus',
+        'Accounting',
+        'Anggota',
+    ];
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', User::class);
@@ -28,7 +35,10 @@ class UserController extends Controller
             ->latest('id');
 
         if (! $currentUser->hasRole('SuperAdmin')) {
-            $query->where('branch_id', $currentUser->branch_id);
+            $this->applyBranchUserScope(
+                $query,
+                $currentUser
+            );
         }
 
         if ($search = trim((string) $request->input('search'))) {
@@ -46,7 +56,20 @@ class UserController extends Controller
         }
 
         if ($request->filled('role')) {
-            $query->role($request->input('role'));
+            $role = (string) $request->input('role');
+
+            if (! $currentUser->hasRole('SuperAdmin')) {
+                abort_unless(
+                    in_array(
+                        $role,
+                        self::MANAGEABLE_ROLES,
+                        true
+                    ),
+                    403
+                );
+            }
+
+            $query->role($role);
         }
 
         $users = $query
@@ -56,14 +79,26 @@ class UserController extends Controller
         $statsQuery = User::query();
 
         if (! $currentUser->hasRole('SuperAdmin')) {
-            $statsQuery->where('branch_id', $currentUser->branch_id);
+            $this->applyBranchUserScope(
+                $statsQuery,
+                $currentUser
+            );
         }
 
-        $totalUsers = (clone $statsQuery)->count();
-        $activeUsers = (clone $statsQuery)->where('is_active', true)->count();
-        $inactiveUsers = (clone $statsQuery)->where('is_active', false)->count();
+        $totalUsers = (clone $statsQuery)
+            ->count();
 
-        $roles = Role::query()->orderBy('name')->get();
+        $activeUsers = (clone $statsQuery)
+            ->where('is_active', true)
+            ->count();
+
+        $inactiveUsers = (clone $statsQuery)
+            ->where('is_active', false)
+            ->count();
+
+        $roles = $this->assignableRoles(
+            $currentUser
+        );
 
         return view('users.index', compact(
             'users',
@@ -81,50 +116,97 @@ class UserController extends Controller
         $currentUser = $request->user();
 
         $branches = $currentUser->hasRole('SuperAdmin')
-            ? Branch::query()->where('is_active', true)->orderBy('name')->get()
-            : Branch::query()->whereKey($currentUser->branch_id)->get();
+            ? Branch::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+            : Branch::query()
+                ->whereKey($currentUser->branch_id)
+                ->get();
 
-        $roles = $this->assignableRoles($currentUser);
+        $roles = $this->assignableRoles(
+            $currentUser
+        );
 
-        return view('users.create', compact('branches', 'roles'));
+        return view(
+            'users.create',
+            compact('branches', 'roles')
+        );
     }
 
-    public function store(Request $request): RedirectResponse
-    {
+    public function store(
+        Request $request
+    ): RedirectResponse {
         $this->authorize('create', User::class);
 
         $currentUser = $request->user();
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
             'email' => [
                 'required',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
             ],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'branch_id' => ['required', 'integer', 'exists:branches,id'],
-            'role' => ['required', 'string', 'exists:roles,name'],
-            'is_active' => ['nullable', 'boolean'],
+
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
+
+            'branch_id' => [
+                'required',
+                'integer',
+                'exists:branches,id',
+            ],
+
+            'role' => [
+                'required',
+                'string',
+                'exists:roles,name',
+            ],
+
+            'is_active' => [
+                'nullable',
+                'boolean',
+            ],
         ]);
 
-        $this->assertBranchAccess($currentUser, (int) $validated['branch_id']);
-        $this->assertRoleAssignable($currentUser, $validated['role']);
+        $this->assertBranchAccess(
+            $currentUser,
+            (int) $validated['branch_id']
+        );
 
-        $newUser = DB::transaction(function () use ($validated) {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-                'branch_id' => $validated['branch_id'],
-                'is_active' => $validated['is_active'] ?? true,
-            ]);
+        $this->assertRoleAssignable(
+            $currentUser,
+            $validated['role']
+        );
 
-            $user->syncRoles([$validated['role']]);
+        $newUser = DB::transaction(
+            function () use ($validated) {
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => $validated['password'],
+                    'branch_id' => $validated['branch_id'],
+                    'is_active' => $validated['is_active'] ?? true,
+                ]);
 
-            return $user;
-        });
+                $user->syncRoles([
+                    $validated['role'],
+                ]);
+
+                return $user;
+            }
+        );
 
         $this->audit(
             'CREATE',
@@ -136,68 +218,141 @@ class UserController extends Controller
                 'email' => $newUser->email,
                 'branch_id' => $newUser->branch_id,
                 'is_active' => $newUser->is_active,
-                'roles' => $newUser->getRoleNames()->values()->all(),
+                'roles' => $newUser
+                    ->getRoleNames()
+                    ->values()
+                    ->all(),
             ]
         );
 
         return redirect()
             ->route('users.index')
-            ->with('success', 'User berhasil dibuat.');
+            ->with(
+                'success',
+                'User berhasil dibuat.'
+            );
     }
 
-    public function show(User $user): View
-    {
+    public function show(
+        Request $request,
+        User $user
+    ): View {
         $this->authorize('view', $user);
 
-        $user->load(['branch', 'roles.permissions']);
+        $this->assertUserManageable(
+            $request->user(),
+            $user
+        );
 
-        return view('users.show', compact('user'));
+        $user->load([
+            'branch',
+            'roles.permissions',
+        ]);
+
+        return view(
+            'users.show',
+            compact('user')
+        );
     }
 
-    public function edit(Request $request, User $user): View
-    {
+    public function edit(
+        Request $request,
+        User $user
+    ): View {
         $this->authorize('update', $user);
 
         $currentUser = $request->user();
+
+        $this->assertUserManageable(
+            $currentUser,
+            $user
+        );
 
         $branches = $currentUser->hasRole('SuperAdmin')
-            ? Branch::query()->where('is_active', true)->orderBy('name')->get()
-            : Branch::query()->whereKey($currentUser->branch_id)->get();
+            ? Branch::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+            : Branch::query()
+                ->whereKey($currentUser->branch_id)
+                ->get();
 
-        $roles = $this->assignableRoles($currentUser);
+        $roles = $this->assignableRoles(
+            $currentUser
+        );
 
-        if (
-            $user->hasRole('SuperAdmin')
-            && ! $roles->contains('name', 'SuperAdmin')
-        ) {
-            abort(403);
-        }
-
-        return view('users.edit', compact('user', 'branches', 'roles'));
+        return view(
+            'users.edit',
+            compact(
+                'user',
+                'branches',
+                'roles'
+            )
+        );
     }
 
-    public function update(Request $request, User $user): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        User $user
+    ): RedirectResponse {
         $this->authorize('update', $user);
 
         $currentUser = $request->user();
 
+        $this->assertUserManageable(
+            $currentUser,
+            $user
+        );
+
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
             'email' => [
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($user),
+                Rule::unique('users', 'email')
+                    ->ignore($user),
             ],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'branch_id' => ['required', 'integer', 'exists:branches,id'],
-            'role' => ['required', 'string', 'exists:roles,name'],
-            'is_active' => ['nullable', 'boolean'],
+
+            'password' => [
+                'nullable',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
+
+            'branch_id' => [
+                'required',
+                'integer',
+                'exists:branches,id',
+            ],
+
+            'role' => [
+                'required',
+                'string',
+                'exists:roles,name',
+            ],
+
+            'is_active' => [
+                'nullable',
+                'boolean',
+            ],
         ]);
 
-        $this->assertBranchAccess($currentUser, (int) $validated['branch_id']);
-        $this->assertRoleAssignable($currentUser, $validated['role']);
+        $this->assertBranchAccess(
+            $currentUser,
+            (int) $validated['branch_id']
+        );
+
+        $this->assertRoleAssignable(
+            $currentUser,
+            $validated['role']
+        );
 
         if (
             $user->id === $currentUser->id
@@ -206,7 +361,8 @@ class UserController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'is_active' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.',
+                    'is_active' =>
+                        'Anda tidak dapat menonaktifkan akun Anda sendiri.',
                 ]);
         }
 
@@ -215,24 +371,37 @@ class UserController extends Controller
             'email' => $user->email,
             'branch_id' => $user->branch_id,
             'is_active' => $user->is_active,
-            'roles' => $user->getRoleNames()->values()->all(),
+            'roles' => $user
+                ->getRoleNames()
+                ->values()
+                ->all(),
         ];
 
-        DB::transaction(function () use ($user, $validated) {
-            $data = [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'branch_id' => $validated['branch_id'],
-                'is_active' => $validated['is_active'] ?? false,
-            ];
+        DB::transaction(
+            function () use (
+                $user,
+                $validated
+            ) {
+                $data = [
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'branch_id' => $validated['branch_id'],
+                    'is_active' =>
+                        $validated['is_active'] ?? false,
+                ];
 
-            if (! empty($validated['password'])) {
-                $data['password'] = $validated['password'];
+                if (! empty($validated['password'])) {
+                    $data['password'] =
+                        $validated['password'];
+                }
+
+                $user->update($data);
+
+                $user->syncRoles([
+                    $validated['role'],
+                ]);
             }
-
-            $user->update($data);
-            $user->syncRoles([$validated['role']]);
-        });
+        );
 
         $user->refresh();
 
@@ -246,98 +415,228 @@ class UserController extends Controller
                 'email' => $user->email,
                 'branch_id' => $user->branch_id,
                 'is_active' => $user->is_active,
-                'roles' => $user->getRoleNames()->values()->all(),
+                'roles' => $user
+                    ->getRoleNames()
+                    ->values()
+                    ->all(),
             ]
         );
 
         return redirect()
             ->route('users.show', $user)
-            ->with('success', 'User berhasil diperbarui.');
+            ->with(
+                'success',
+                'User berhasil diperbarui.'
+            );
     }
 
-    public function destroy(Request $request, User $user): RedirectResponse
-    {
+    public function destroy(
+        Request $request,
+        User $user
+    ): RedirectResponse {
         $this->authorize('delete', $user);
 
-        if ($user->id === $request->user()->id) {
+        $currentUser = $request->user();
+
+        $this->assertUserManageable(
+            $currentUser,
+            $user
+        );
+
+        if ($user->id === $currentUser->id) {
             return back()->withErrors([
-                'user' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.',
+                'user' =>
+                    'Anda tidak dapat menonaktifkan akun Anda sendiri.',
             ]);
         }
 
         if (! $user->is_active) {
-            return back()->with('info', 'User tersebut sudah tidak aktif.');
+            return back()->with(
+                'info',
+                'User tersebut sudah tidak aktif.'
+            );
         }
 
-        $oldValues = ['is_active' => true];
-
-        $user->update(['is_active' => false]);
+        $user->update([
+            'is_active' => false,
+        ]);
 
         $this->audit(
             'INACTIVE',
             $user,
             'Menonaktifkan user ' . $user->email,
-            $oldValues,
-            ['is_active' => false]
+            [
+                'is_active' => true,
+            ],
+            [
+                'is_active' => false,
+            ]
         );
 
         return redirect()
             ->route('users.index')
-            ->with('success', 'User berhasil dinonaktifkan.');
+            ->with(
+                'success',
+                'User berhasil dinonaktifkan.'
+            );
     }
 
-    public function restore(User $user): RedirectResponse
-    {
+    public function restore(
+        Request $request,
+        User $user
+    ): RedirectResponse {
         $this->authorize('restore', $user);
 
+        $this->assertUserManageable(
+            $request->user(),
+            $user
+        );
+
         if ($user->is_active) {
-            return back()->with('info', 'User tersebut sudah aktif.');
+            return back()->with(
+                'info',
+                'User tersebut sudah aktif.'
+            );
         }
 
-        $user->update(['is_active' => true]);
+        $user->update([
+            'is_active' => true,
+        ]);
 
         $this->audit(
             'ACTIVE',
             $user,
             'Mengaktifkan user ' . $user->email,
-            ['is_active' => false],
-            ['is_active' => true]
+            [
+                'is_active' => false,
+            ],
+            [
+                'is_active' => true,
+            ]
         );
 
         return redirect()
             ->route('users.index')
-            ->with('success', 'User berhasil diaktifkan.');
+            ->with(
+                'success',
+                'User berhasil diaktifkan.'
+            );
     }
 
-    private function assignableRoles(User $currentUser)
-    {
-        $query = Role::query()->orderBy('name');
+    private function assignableRoles(
+        User $currentUser
+    ) {
+        $query = Role::query()
+            ->orderBy('name');
 
         if (! $currentUser->hasRole('SuperAdmin')) {
-            $query->where('name', '!=', 'SuperAdmin');
+            $query->whereIn(
+                'name',
+                self::MANAGEABLE_ROLES
+            );
         }
 
         return $query->get();
     }
 
-    private function assertRoleAssignable(User $currentUser, string $role): void
-    {
-        if (
-            $role === 'SuperAdmin'
-            && ! $currentUser->hasRole('SuperAdmin')
-        ) {
-            abort(403);
+    private function applyBranchUserScope(
+        $query,
+        User $currentUser
+    ): void {
+        $query
+            ->where(
+                'branch_id',
+                $currentUser->branch_id
+            )
+            ->whereHas(
+                'roles',
+                function ($roleQuery) {
+                    $roleQuery->whereIn(
+                        'name',
+                        self::MANAGEABLE_ROLES
+                    );
+                }
+            )
+            ->whereDoesntHave(
+                'roles',
+                function ($roleQuery) {
+                    $roleQuery->whereNotIn(
+                        'name',
+                        self::MANAGEABLE_ROLES
+                    );
+                }
+            );
+    }
+
+    private function assertUserManageable(
+        User $currentUser,
+        User $targetUser
+    ): void {
+        if ($currentUser->hasRole('SuperAdmin')) {
+            return;
+        }
+
+        abort_unless(
+            $currentUser->branch_id !== null
+            && (int) $currentUser->branch_id
+                === (int) $targetUser->branch_id,
+            403
+        );
+
+        $targetRoles = $targetUser
+            ->getRoleNames()
+            ->values()
+            ->all();
+
+        abort_if(
+            empty($targetRoles),
+            403
+        );
+
+        foreach ($targetRoles as $role) {
+            abort_unless(
+                in_array(
+                    $role,
+                    self::MANAGEABLE_ROLES,
+                    true
+                ),
+                403
+            );
         }
     }
 
-    private function assertBranchAccess(User $currentUser, int $branchId): void
-    {
-        if (
-            ! $currentUser->hasRole('SuperAdmin')
-            && (int) $currentUser->branch_id !== $branchId
-        ) {
-            abort(403);
+    private function assertRoleAssignable(
+        User $currentUser,
+        string $role
+    ): void {
+        if ($currentUser->hasRole('SuperAdmin')) {
+            return;
         }
+
+        abort_unless(
+            in_array(
+                $role,
+                self::MANAGEABLE_ROLES,
+                true
+            ),
+            403
+        );
+    }
+
+    private function assertBranchAccess(
+        User $currentUser,
+        int $branchId
+    ): void {
+        if ($currentUser->hasRole('SuperAdmin')) {
+            return;
+        }
+
+        abort_unless(
+            $currentUser->branch_id !== null
+            && (int) $currentUser->branch_id
+                === $branchId,
+            403
+        );
     }
 
     private function audit(

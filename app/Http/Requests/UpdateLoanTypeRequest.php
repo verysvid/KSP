@@ -100,6 +100,39 @@ class UpdateLoanTypeRequest extends FormRequest
                 'required_if:penalty_type,FIXED',
             ],
 
+			'receivable_account_id' => [
+				'required',
+				'integer',
+				Rule::exists('accounts', 'id')->where(
+					fn ($query) => $query
+						->where('type', 'ASSET')
+						->where('is_active', true)
+						->where('is_postable', true)
+				),
+			],
+
+			'interest_income_account_id' => [
+				'required',
+				'integer',
+				Rule::exists('accounts', 'id')->where(
+					fn ($query) => $query
+						->where('type', 'REVENUE')
+						->where('is_active', true)
+						->where('is_postable', true)
+				),
+			],
+
+			'penalty_income_account_id' => [
+				'nullable',
+				'integer',
+				Rule::exists('accounts', 'id')->where(
+					fn ($query) => $query
+						->where('type', 'REVENUE')
+						->where('is_active', true)
+						->where('is_postable', true)
+				),
+			],
+
             'is_active' => [
                 'nullable',
                 'boolean',

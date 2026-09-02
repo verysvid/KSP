@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Concerns\BelongsToBranch;
 
 class JournalEntry extends Model
 {
+	use BelongsToBranch;
+	
     protected $fillable = [
         'branch_id',
         'journal_no',

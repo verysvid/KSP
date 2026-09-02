@@ -4,7 +4,11 @@
     @keydown.escape.window="sidebarOpen = false">
 
     <div class="sidebar-brand">
-        <a href="{{ route('dashboard') }}" class="brand-link">
+        <a href="{{ auth()->user()?->can('dashboard.view')
+				? route('dashboard')
+				: route('reports.savings.index') }}"
+			class="brand-link"
+		>
             <div class="brand-logo">K</div>
             <div class="brand-copy">
                 <strong>{{ config('app.name', 'Koperasi') }}</strong>
@@ -19,7 +23,9 @@
     </div>
 
     <div class="sidebar-scroll">
-        <div class="sidebar-section-title">MAIN MENU</div>
+		@can('dashboard.view')
+			<div class="sidebar-section-title">MAIN MENU</div>
+		@endcan
         <nav class="sidebar-nav">
             @can('dashboard.view')
                 @if (Route::has('dashboard'))
@@ -32,7 +38,9 @@
             @endcan
         </nav>
 
-        <div class="sidebar-section-title">MASTER DATA</div>
+		@canany(['branch.view', 'member.view', 'saving-type.view', 'loan.view'])
+			<div class="sidebar-section-title">MASTER DATA</div>
+		@endcanany
         <nav class="sidebar-nav">
             @can('branch.view')
                 @if (Route::has('branches.index'))
@@ -64,7 +72,7 @@
                 @endif
             @endcan
 
-            @can('loan-type.view')
+            @can('loan.view')
                 @if (Route::has('loan-types.index'))
                     <a href="{{ route('loan-types.index') }}"
                        class="nav-item {{ request()->routeIs('loan-types.*') ? 'active' : '' }}">
@@ -75,7 +83,9 @@
             @endcan
         </nav>
 
-        <div class="sidebar-section-title">TRANSAKSI</div>
+		@canany(['saving-transaction.view', 'loan.view', 'installment.view'])
+			<div class="sidebar-section-title">TRANSAKSI</div>
+		@endcanany
         <nav class="sidebar-nav">
             @can('saving-transaction.view')
                 @if (Route::has('saving-transactions.index'))
@@ -97,7 +107,7 @@
 				@endif
 			@endcan
 
-			@can('loan.view')
+			@can('installment.view')
 				@if (Route::has('loan-payments.index'))
 					<a
 						href="{{ route('loan-payments.index') }}"
@@ -122,7 +132,9 @@
 			@endcan
         </nav>
 
-        <div class="sidebar-section-title">AKUNTANSI</div>
+		@canany(['journal.view', 'accounting.view', 'account.view'])
+			<div class="sidebar-section-title">AKUNTANSI</div>
+		@endcanany
         <nav class="sidebar-nav">
 			@can('journal.view')
 				@if (Route::has('journal-entries.index'))
@@ -135,9 +147,93 @@
 					</a>
 				@endif
 			@endcan
+
+			@can('accounting.view')
+				@if (Route::has('general-ledger.index'))
+					<a
+						href="{{ route('general-ledger.index') }}"
+						class="nav-item {{ request()->routeIs('general-ledger.*') ? 'active' : '' }}"
+					>
+						<span class="nav-icon">▦</span>
+						<span>Buku Besar</span>
+					</a>
+				@endif
+				{{--<a
+					href="{{ route('general-ledger.index') }}"
+					class="flex items-center gap-3 rounded-lg px-3 py-2.5
+						   text-sm font-medium transition
+						   {{ request()->routeIs('general-ledger.*')
+								? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+								: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
+
+					<span class="text-lg">📒</span>
+					<span>Buku Besar</span>
+				</a>--}}
+			@endcan
+
+			@can('accounting.view')
+				@if(Route::has('trial-balance.index'))
+					<a
+						href="{{ route('trial-balance.index') }}"
+						class="flex items-center gap-3 rounded-lg px-3 py-2.5
+							   text-sm font-medium transition
+							   {{ request()->routeIs('trial-balance.*')
+									? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
+
+						<span class="text-lg">⚖</span>
+						<span>Neraca Saldo</span>
+					</a>
+				@endif
+			@endcan
+
+			@can('accounting.view')
+				@if(Route::has('income-statement.index'))
+					<a
+						href="{{ route('income-statement.index') }}"
+						class="flex items-center gap-3 rounded-lg px-3 py-2.5
+							   text-sm font-medium transition
+							   {{ request()->routeIs('income-statement.*')
+									? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
+						<span class="text-lg">📈</span>
+						<span>Laba Rugi</span>
+					</a>
+				@endif
+			@endcan
+
+			@can('accounting.view')
+				@if(Route::has('balance-sheet.index'))
+					<a
+						href="{{ route('balance-sheet.index') }}"
+						class="flex items-center gap-3 rounded-lg px-3 py-2.5
+							   text-sm font-medium transition
+							   {{ request()->routeIs('balance-sheet.*')
+									? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
+
+						<span class="text-lg">⚖</span>
+						<span>Neraca</span>
+					</a>
+				@endif
+			@endcan
+
+			@can('account.view')
+				@if (Route::has('accounts.index'))
+					<a
+						href="{{ route('accounts.index') }}"
+						class="nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}"
+					>
+						<span class="nav-icon">▦</span>
+						<span>Chart of Accounts</span>
+					</a>
+				@endif
+			@endcan
         </nav>
 
-        <div class="sidebar-section-title">LAPORAN</div>
+		@canany(['loan.view', 'report.member-deductions.view', 'member-saving-report.view', 'member-loan-report.view'])
+			<div class="sidebar-section-title">LAPORAN</div>
+		@endcanany
 		@can('loan.view')
 			@if (Route::has('loan-reports.outstanding'))
 				<a
@@ -149,8 +245,36 @@
 				</a>
 			@endif
 		@endcan
+		
+		@include('layouts.partials.member-deduction-report-menu')
 
-        <div class="sidebar-section-title">ADMINISTRATION</div>
+		@can('member-saving-report.view')
+			@if (Route::has('reports.savings.index'))
+				<a
+					href="{{ route('reports.savings.index') }}"
+					class="nav-item {{ request()->routeIs('reports.savings.*') ? 'active' : '' }}"
+				>
+					<span class="nav-icon">▤</span>
+					<span>Laporan Simpanan Anggota</span>
+				</a>
+			@endif
+		@endcan
+
+		@can('member-loan-report.view')
+			@if (Route::has('reports.loans.index'))
+				<a
+					href="{{ route('reports.loans.index') }}"
+					class="nav-item {{ request()->routeIs('reports.loans.*') ? 'active' : '' }}"
+				>
+					<span class="nav-icon">▤</span>
+					<span>Laporan Pinjaman Anggota</span>
+				</a>
+			@endif
+		@endcan
+
+		@canany(['user.view', 'audit-log.view'])
+			<div class="sidebar-section-title">ADMINISTRATION</div>
+		@endcanany
         <nav class="sidebar-nav">
             @can('user.view')
                 @if (Route::has('users.index'))

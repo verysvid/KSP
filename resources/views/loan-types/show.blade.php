@@ -99,6 +99,52 @@
                     </div>
                 </div>
             </x-card>
+			
+			<x-card title="Mapping Chart of Accounts" class="mt-5">
+				<div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+					<div>
+						<div class="text-sm text-slate-500 dark:text-slate-400">
+							Piutang Pinjaman
+						</div>
+						<div class="mt-1 font-semibold text-slate-900 dark:text-white">
+							@if($loanType->receivableAccount)
+								{{ $loanType->receivableAccount->code }} - {{ $loanType->receivableAccount->name }}
+							@else
+								Belum dimapping
+							@endif
+						</div>
+					</div>
+
+					<div>
+						<div class="text-sm text-slate-500 dark:text-slate-400">
+							Pendapatan Bunga
+						</div>
+						<div class="mt-1 font-semibold text-slate-900 dark:text-white">
+							@if($loanType->interestIncomeAccount)
+								{{ $loanType->interestIncomeAccount->code }} - {{ $loanType->interestIncomeAccount->name }}
+							@else
+								Belum dimapping
+							@endif
+						</div>
+					</div>
+
+					<div>
+						<div class="text-sm text-slate-500 dark:text-slate-400">
+							Pendapatan Denda
+						</div>
+						<div class="mt-1 font-semibold text-slate-900 dark:text-white">
+							@if($loanType->penaltyIncomeAccount)
+								{{ $loanType->penaltyIncomeAccount->code }} - {{ $loanType->penaltyIncomeAccount->name }}
+							@elseif(($loanType->penalty_type ?? 'NONE') === 'NONE')
+								Tidak digunakan
+							@else
+								Belum dimapping
+							@endif
+						</div>
+					</div>
+				</div>
+
+			</x-card>
         </div>
 
         <div>

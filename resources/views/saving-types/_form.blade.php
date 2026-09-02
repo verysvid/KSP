@@ -1,8 +1,14 @@
 @csrf
 
 <div
-    x-data="savingTypeForm(@js(old('amount', isset($savingType) ? $savingType->amount : null)))"
-    class="grid grid-cols-1 gap-5 md:grid-cols-2"
+{{-- x-data="savingTypeForm(@js(old('amount', isset($savingType) ? $savingType->amount : null)))"
+class="grid grid-cols-1 gap-5 md:grid-cols-2" --}}
+	
+	x-data="savingTypeForm(@js(old('amount', 
+		isset($savingType) && $savingType->amount !== null
+		? (int) $savingType->amount
+		: null)))"
+	class="grid grid-cols-1 gap-5 md:grid-cols-2"
 >
     <div>
         <label for="code" class="form-label">
@@ -99,7 +105,41 @@
         @enderror
     </div>
 
-    <div></div>
+	<div>
+		<label for="liability_account_id" class="form-label">
+			Akun Simpanan / Liabilitas
+			<span class="text-red-500">*</span>
+		</label>
+
+		<select
+			id="liability_account_id"
+			name="liability_account_id"
+			class="form-select"
+			required
+		>
+			<option value="">
+				Pilih Akun Liabilitas
+			</option>
+
+			@foreach($liabilityAccounts as $account)
+				<option
+					value="{{ $account->id }}"
+					@selected(
+						(string) old(
+							'liability_account_id',
+							$savingType->liability_account_id ?? ''
+						) === (string) $account->id
+					)
+				>
+					{{ $account->code }} - {{ $account->name }}
+				</option>
+			@endforeach
+		</select>
+
+		@error('liability_account_id')
+			<p class="form-error">{{ $message }}</p>
+		@enderror
+	</div>
 
     <div>
         <label class="form-label">Wajib</label>

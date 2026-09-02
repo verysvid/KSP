@@ -28,6 +28,7 @@
         </div>
     @endif
 
+	{{--
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-top">
@@ -53,6 +54,7 @@
             <div class="stat-value">{{ $inactiveUsers }}</div>
         </div>
     </div>
+	--}}
 
     <x-card>
         <form method="GET"

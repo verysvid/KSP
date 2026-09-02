@@ -34,10 +34,16 @@ class MemberUserController extends Controller
             abort(422, 'Hanya anggota aktif yang dapat dibuatkan user login.');
         }
 
-        $roles = Role::query()
-            ->where('name', '!=', 'SuperAdmin')
-            ->orderBy('name')
-            ->get();
+		$roles = Role::query()
+			->whereIn('name', [
+				'Manager',
+				'Pengurus',
+				'Accounting',
+				'Anggota',
+			])
+			->orderBy('name')
+			->get();
+
 
         return view('members.add-to-user', compact('member', 'roles'));
     }
@@ -71,9 +77,12 @@ class MemberUserController extends Controller
             'role' => [
                 'required',
                 'string',
-                Rule::exists('roles', 'name')->where(
-                    fn ($query) => $query->where('name', '!=', 'SuperAdmin')
-                ),
+				Rule::in([
+						'Manager',
+						'Pengurus',
+						'Accounting',
+						'Anggota',
+					]),
             ],
         ]);
 

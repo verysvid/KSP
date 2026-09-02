@@ -43,6 +43,14 @@
                 <div class="info-row"><span>Telepon</span><strong>{{ $member->phone ?: '-' }}</strong></div>
                 <div class="info-row"><span>Email</span><strong>{{ $member->email ?: '-' }}</strong></div>
                 <div class="info-row"><span>Pekerjaan</span><strong>{{ $member->occupation ?: '-' }}</strong></div>
+                <div class="info-row">
+                    <span>Nominal Simpanan Manasuka</span>
+                    <strong>
+                        {{ $member->amount_saving !== null
+                            ? 'Rp ' . number_format((float) $member->amount_saving, 0, ',', '.')
+                            : '-' }}
+                    </strong>
+                </div>
                 <div class="info-row"><span>Tanggal Bergabung</span><strong>{{ $member->join_date?->format('d/m/Y') ?? '-' }}</strong></div>
                 <div class="info-row"><span>Alamat</span><strong class="max-w-md">{{ $member->address ?: '-' }}</strong></div>
                 <div class="info-row"><span>Catatan</span><strong class="max-w-md">{{ $member->notes ?: '-' }}</strong></div>

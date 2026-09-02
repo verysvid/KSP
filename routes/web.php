@@ -18,13 +18,21 @@ use App\Http\Controllers\LoanPaymentController;
 use App\Http\Controllers\LoanOverdueController;
 use App\Http\Controllers\LoanDashboardController;
 use App\Http\Controllers\LoanReportController;
-
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\GeneralLedgerController;
+use App\Http\Controllers\TrialBalanceController;
+use App\Http\Controllers\IncomeStatementController;
+use App\Http\Controllers\BalanceSheetController;
+use App\Models\Member;
+use App\Models\SavingTransaction;
 
 Route::middleware(['auth'])->group(function () {
     Route::resource(
         'loan-types',
         LoanTypeController::class
-    )->only([
+    )
+	->middleware('can:loan.view')
+	->only([
         'index',
         'create',
         'store',
@@ -36,7 +44,37 @@ Route::middleware(['auth'])->group(function () {
     Route::patch(
         'loan-types/{loanType}/toggle-status',
         [LoanTypeController::class, 'toggleStatus']
-    )->name('loan-types.toggle-status');
+    )
+	->middleware('can:loan.edit')
+	->name('loan-types.toggle-status');
+
+	Route::get(
+		'/general-ledger',
+		[GeneralLedgerController::class, 'index']
+	)
+	->middleware('can:accounting.view')
+	->name('general-ledger.index');
+
+	Route::get(
+		'/trial-balance',
+		[TrialBalanceController::class, 'index']
+	)
+	->middleware('can:accounting.view')
+	->name('trial-balance.index');
+
+	Route::get(
+		'/income-statement',
+		[IncomeStatementController::class, 'index']
+	)
+	->middleware('can:accounting.view')
+	->name('income-statement.index');
+
+	Route::get(
+		'/balance-sheet',
+		[BalanceSheetController::class, 'index']
+	)
+	->middleware('can:accounting.view')
+	->name('balance-sheet.index');
 
 });
 
@@ -69,9 +107,11 @@ Route::middleware(['auth', 'branch'])->group(function () {
 		->name('loans.overdue.refresh');
 
 	Route::get('loan-dashboard', [LoanDashboardController::class, 'index'])
+		->middleware('can:loan.view')
 		->name('loan-dashboard.index');
 
-	Route::prefix('loan-reports')
+	Route::middleware('can:loan.view')
+		->prefix('loan-reports')
 		->name('loan-reports.')
 		->group(function () {
 			Route::get(
@@ -94,6 +134,24 @@ Route::middleware(['auth', 'branch'])->group(function () {
 				[LoanReportController::class, 'payments']
 			)->name('payments');
 		});
+
+		Route::resource('accounts', AccountController::class)
+			->middleware('can:account.view')
+			->only([
+				'index',
+				'create',
+				'store',
+				'show',
+				'edit',
+				'update',
+			]);
+
+		Route::patch(
+			'accounts/{account}/toggle-status',
+			[AccountController::class, 'toggleStatus']
+		)
+		->middleware('can:account.view')
+		->name('accounts.toggle-status');
 
 });
 
@@ -125,6 +183,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/saving-types/{savingType}/toggle-status', [SavingTypeController::class, 'toggleStatus'])
         ->middleware('can:saving-type.edit')
         ->name('saving-types.toggle-status');
+
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -218,45 +277,99 @@ Route::middleware(['auth', 'branch'])->group(function () {
         ->middleware('can:user.create')
         ->name('members.user.store');
 
-    Route::resource('members', MemberController::class);
+	Route::get('members', [MemberController::class, 'index'])
+		->middleware('can:member.view')
+		->name('members.index');
 
-	Route::resource('loans', LoanController::class)->only([
-			'index',
-			'create',
-			'store',
-			'show',
-			'edit',
-			'update',
-			'destroy',
-		]);
+	Route::get('members/create', [MemberController::class, 'create'])
+		->middleware('can:member.create')
+		->name('members.create');
+
+	Route::post('members', [MemberController::class, 'store'])
+		->middleware('can:member.create')
+		->name('members.store');
+
+	Route::get('members/{member}', [MemberController::class, 'show'])
+		->middleware('can:member.view')
+		->name('members.show');
+
+	Route::get('members/{member}/edit', [MemberController::class, 'edit'])
+		->middleware('can:member.edit')
+		->name('members.edit');
+
+	Route::put('members/{member}', [MemberController::class, 'update'])
+		->middleware('can:member.edit')
+		->name('members.update');
+
+	Route::delete('members/{member}', [MemberController::class, 'destroy'])
+		->middleware('can:member.delete')
+		->name('members.destroy');
+
+	Route::get('loans', [LoanController::class, 'index'])
+		->middleware('can:loan.view')
+		->name('loans.index');
+
+	Route::get('loans/create', [LoanController::class, 'create'])
+		->middleware('can:loan.create')
+		->name('loans.create');
+
+	Route::post('loans', [LoanController::class, 'store'])
+		->middleware('can:loan.create')
+		->name('loans.store');
+
+	Route::get('loans/{loan}', [LoanController::class, 'show'])
+		->middleware('can:loan.view')
+		->name('loans.show');
+
+	Route::get('loans/{loan}/edit', [LoanController::class, 'edit'])
+		->middleware('can:loan.edit')
+		->name('loans.edit');
+
+	Route::put('loans/{loan}', [LoanController::class, 'update'])
+		->middleware('can:loan.edit')
+		->name('loans.update');
+
+	Route::delete('loans/{loan}', [LoanController::class, 'destroy'])
+		->middleware('can:loan.delete')
+		->name('loans.destroy');
 
 	Route::patch('loans/{loan}/submit', [LoanController::class, 'submit'])
+		->middleware('can:loan.submit')
 		->name('loans.submit');
 
 	Route::patch('loans/{loan}/approve', [LoanController::class, 'approve'])
+		->middleware('can:loan.approve')
 		->name('loans.approve');
 
 	Route::patch('loans/{loan}/reject', [LoanController::class, 'reject'])
+		->middleware('can:loan.reject')
 		->name('loans.reject');
 
 	Route::get('loans/{loan}/disbursement', [LoanDisbursementController::class, 'create'])
+		->middleware('can:loan.disburse')
 		->name('loans.disbursements.create');
 
 	Route::post('loans/{loan}/disbursement', [LoanDisbursementController::class, 'store'])
+		->middleware('can:loan.disburse')
 		->name('loans.disbursements.store');
 
-	Route::resource('journal-entries', JournalEntryController::class)->only([
+	Route::resource('journal-entries', JournalEntryController::class)
+		->middleware('can:journal.view')
+		->only([
 			'index',
 			'show',
 		]);
 
 	Route::get('loan-payments', [LoanPaymentController::class, 'index'])
+		->middleware('can:installment.view')
 		->name('loan-payments.index');
 
 	Route::get('loans/{loan}/installments/{installment}/payment', [LoanPaymentController::class, 'create'])
+		->middleware('can:loan.pay')
 		->name('loans.installments.payments.create');
 
 	Route::post('loans/{loan}/installments/{installment}/payment', [LoanPaymentController::class, 'store'])
+		->middleware('can:loan.pay')
 		->name('loans.installments.payments.store');
 
 });
@@ -266,8 +379,46 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+
+    $totalMembers = Member::query()->count();
+
+    $activeMembers = Member::query()
+        ->where('member_status', 'ACTIVE')
+        ->count();
+
+    $totalSavings = (float) SavingTransaction::query()
+        ->where('status', 'APPROVED')
+        ->selectRaw('COALESCE(SUM(credit - debit), 0) as balance')
+        ->value('balance');
+
+    $pendingTransactions = SavingTransaction::query()
+        ->where('status', 'PENDING')
+        ->count();
+
+    $latestTransactions = SavingTransaction::query()
+        ->with([
+            'member:id,name',
+            'savingType:id,name',
+        ])
+        ->latest('transaction_date')
+        ->latest('id')
+        ->limit(5)
+        ->get();
+
+    return view('dashboard', compact(
+        'totalMembers',
+        'activeMembers',
+        'totalSavings',
+        'pendingTransactions',
+        'latestTransactions'
+    ));
+
+})->middleware([
+    'auth',
+    'verified',
+    'can:dashboard.view',
+])->name('dashboard');
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -286,4 +437,7 @@ Route::get('/branch-test', function () {
     ];
 })->middleware(['auth', 'branch']);
 
+require __DIR__.'/member-deduction-reports.php';
+require __DIR__.'/member-saving-reports.php';
+require __DIR__.'/member-loan-reports.php';
 require __DIR__.'/auth.php';

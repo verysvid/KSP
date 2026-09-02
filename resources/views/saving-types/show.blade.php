@@ -96,5 +96,29 @@
             </div>
         </x-card>
 
+		<x-card title="Mapping Chart of Accounts" class="mt-5">
+			<div>
+				<div class="text-sm text-slate-500 dark:text-slate-400">
+					Akun Kewajiban Simpanan
+				</div>
+
+				<div class="mt-1 font-semibold text-slate-900 dark:text-white">
+					@if($savingType->liabilityAccount)
+						{{ $savingType->liabilityAccount->code }}
+						-
+						{{ $savingType->liabilityAccount->name }}
+					@else
+						Belum dimapping
+					@endif
+				</div>
+
+				<p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+					Akun ini akan digunakan pada jurnal setoran dan penarikan
+					setelah Step 11D diaktifkan.
+				</p>
+			</div>
+
+		</x-card>
+
     </div>
 </x-app-layout>

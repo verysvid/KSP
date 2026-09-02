@@ -34,8 +34,10 @@ class LoanDisbursementController extends Controller
         $loan->load(['branch', 'member', 'loanType']);
 
         $cashAccounts = Account::query()
+			->where('type', Account::TYPE_ASSET)
             ->where('is_cash_bank', true)
             ->where('is_active', true)
+			->where('is_postable', true)
             ->orderBy('code')
             ->get();
 
@@ -49,6 +51,11 @@ class LoanDisbursementController extends Controller
         DisburseLoanRequest $request,
         Loan $loan
     ): RedirectResponse {
+		abort_unless(
+			$request->user()?->can('loan.disburse'),
+			403
+		);
+
         $this->ensureLoanAccessible($loan);
 
         $this->loanDisbursementService->disburse(
@@ -65,15 +72,20 @@ class LoanDisbursementController extends Controller
             );
     }
 
-    protected function ensureLoanAccessible(Loan $loan): void
-    {
-        if ($this->branchContext->isSuperAdmin()) {
-            return;
-        }
+	protected function ensureLoanAccessible(Loan $loan): void 
+	{
+		if ($this->branchContext->isSuperAdmin()) {
+			return;
+		}
 
-        abort_unless(
-            $loan->branch_id === $this->branchContext->getCurrentBranchId(),
-            403
-        );
-    }
+		$branchId = $this->branchContext
+			->getCurrentBranchId();
+
+		abort_unless(
+			$branchId !== null
+			&& (int) $loan->branch_id === (int) $branchId,
+			403
+		);
+	}
+
 }

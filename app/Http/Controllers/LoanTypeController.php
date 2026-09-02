@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreLoanTypeRequest;
 use App\Http\Requests\UpdateLoanTypeRequest;
 use App\Models\LoanType;
+use App\Models\Account;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -50,10 +51,38 @@ class LoanTypeController extends Controller
         return view('loan-types.index', compact('loanTypes'));
     }
 
-    public function create(): View
-    {
-        return view('loan-types.create');
-    }
+	public function create(): View
+	{
+		$receivableAccounts = Account::query()
+			->where('type', Account::TYPE_ASSET)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		$interestIncomeAccounts = Account::query()
+			->where('type', Account::TYPE_REVENUE)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		$penaltyIncomeAccounts = Account::query()
+			->where('type', Account::TYPE_REVENUE)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		return view(
+			'loan-types.create',
+			compact(
+				'receivableAccounts',
+				'interestIncomeAccounts',
+				'penaltyIncomeAccounts'
+			)
+		);
+	}
 
     public function store(
         StoreLoanTypeRequest $request
@@ -70,19 +99,50 @@ class LoanTypeController extends Controller
 
     public function show(LoanType $loanType): View
     {
+		$loanType->loadMissing([
+			'receivableAccount',
+			'interestIncomeAccount',
+			'penaltyIncomeAccount',
+		]);
         return view(
             'loan-types.show',
             compact('loanType')
         );
     }
 
-    public function edit(LoanType $loanType): View
-    {
-        return view(
-            'loan-types.edit',
-            compact('loanType')
-        );
-    }
+	public function edit(LoanType $loanType): View
+	{
+		$receivableAccounts = Account::query()
+			->where('type', Account::TYPE_ASSET)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		$interestIncomeAccounts = Account::query()
+			->where('type', Account::TYPE_REVENUE)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		$penaltyIncomeAccounts = Account::query()
+			->where('type', Account::TYPE_REVENUE)
+			->where('is_active', true)
+			->where('is_postable', true)
+			->orderBy('code')
+			->get();
+
+		return view(
+			'loan-types.edit',
+			compact(
+				'loanType',
+				'receivableAccounts',
+				'interestIncomeAccounts',
+				'penaltyIncomeAccounts'
+			)
+		);
+	}
 
     public function update(
         UpdateLoanTypeRequest $request,
