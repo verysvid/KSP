@@ -104,7 +104,12 @@
             max="100"
             step="0.0001"
             required
-            value="{{ old('interest_rate', $loanType->interest_rate ?? 0) }}"
+			value="{{ old(
+				'interest_rate',
+				isset($loanType)
+					? rtrim(rtrim(number_format((float) $loanType->interest_rate, 4, '.', ''), '0'), '.')
+					: ''
+			) }}"
             class="form-control"
             placeholder="1.0000"
         >

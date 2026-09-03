@@ -109,10 +109,8 @@
 
 			@can('installment.view')
 				@if (Route::has('loan-payments.index'))
-					<a
-						href="{{ route('loan-payments.index') }}"
-						class="nav-item {{ request()->routeIs('loan-payments.*') ? 'active' : '' }}"
-					>
+					<a href="{{ route('loan-payments.index') }}"
+						class="nav-item {{ request()->routeIs('loan-payments.*') ? 'active' : '' }}">
 						<span class="nav-icon">▦</span>
 						<span>Pembayaran Angsuran</span>
 					</a>
@@ -121,10 +119,8 @@
 
 			@can('loan.view')
 				@if (Route::has('loan-dashboard.index'))
-					<a
-						href="{{ route('loan-dashboard.index') }}"
-						class="nav-item {{ request()->routeIs('loan-dashboard.*') ? 'active' : '' }}"
-					>
+					<a href="{{ route('loan-dashboard.index') }}"
+						class="nav-item {{ request()->routeIs('loan-dashboard.*') ? 'active' : '' }}">
 						<span class="nav-icon">▥</span>
 						<span>Dashboard Pinjaman</span>
 					</a>
@@ -138,10 +134,8 @@
         <nav class="sidebar-nav">
 			@can('journal.view')
 				@if (Route::has('journal-entries.index'))
-					<a
-						href="{{ route('journal-entries.index') }}"
-						class="nav-item {{ request()->routeIs('journal-entries.*') ? 'active' : '' }}"
-					>
+					<a href="{{ route('journal-entries.index') }}"
+						class="nav-item {{ request()->routeIs('journal-entries.*') ? 'active' : '' }}">
 						<span class="nav-icon">▤</span>
 						<span>Jurnal Umum</span>
 					</a>
@@ -150,38 +144,19 @@
 
 			@can('accounting.view')
 				@if (Route::has('general-ledger.index'))
-					<a
-						href="{{ route('general-ledger.index') }}"
-						class="nav-item {{ request()->routeIs('general-ledger.*') ? 'active' : '' }}"
-					>
-						<span class="nav-icon">▦</span>
+					<a href="{{ route('general-ledger.index') }}"
+						class="nav-item {{ request()->routeIs('general-ledger.*') ? 'active' : '' }}">
+						<span class="nav-icon">📒</span>
 						<span>Buku Besar</span>
 					</a>
 				@endif
-				{{--<a
-					href="{{ route('general-ledger.index') }}"
-					class="flex items-center gap-3 rounded-lg px-3 py-2.5
-						   text-sm font-medium transition
-						   {{ request()->routeIs('general-ledger.*')
-								? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-								: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
-
-					<span class="text-lg">📒</span>
-					<span>Buku Besar</span>
-				</a>--}}
 			@endcan
 
 			@can('accounting.view')
 				@if(Route::has('trial-balance.index'))
-					<a
-						href="{{ route('trial-balance.index') }}"
-						class="flex items-center gap-3 rounded-lg px-3 py-2.5
-							   text-sm font-medium transition
-							   {{ request()->routeIs('trial-balance.*')
-									? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
-
-						<span class="text-lg">⚖</span>
+					<a href="{{ route('trial-balance.index') }}"
+						class="nav-item {{ request()->routeIs('trial-balance.*') ? 'active' : '' }}">
+						<span class="nav-icon">⚖</span>
 						<span>Neraca Saldo</span>
 					</a>
 				@endif
@@ -189,14 +164,9 @@
 
 			@can('accounting.view')
 				@if(Route::has('income-statement.index'))
-					<a
-						href="{{ route('income-statement.index') }}"
-						class="flex items-center gap-3 rounded-lg px-3 py-2.5
-							   text-sm font-medium transition
-							   {{ request()->routeIs('income-statement.*')
-									? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
-						<span class="text-lg">📈</span>
+					<a href="{{ route('income-statement.index') }}"
+						class="nav-item {{ request()->routeIs('income-statement.*') ? 'active' : '' }}">
+						<span class="nav-icon">📈</span>
 						<span>Laba Rugi</span>
 					</a>
 				@endif
@@ -204,15 +174,9 @@
 
 			@can('accounting.view')
 				@if(Route::has('balance-sheet.index'))
-					<a
-						href="{{ route('balance-sheet.index') }}"
-						class="flex items-center gap-3 rounded-lg px-3 py-2.5
-							   text-sm font-medium transition
-							   {{ request()->routeIs('balance-sheet.*')
-									? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
-
-						<span class="text-lg">⚖</span>
+					<a href="{{ route('balance-sheet.index') }}"
+						class="nav-item {{ request()->routeIs('balance-sheet.*') ? 'active' : '' }}">
+						<span class="nav-icon">⚖</span>
 						<span>Neraca</span>
 					</a>
 				@endif
@@ -220,10 +184,8 @@
 
 			@can('account.view')
 				@if (Route::has('accounts.index'))
-					<a
-						href="{{ route('accounts.index') }}"
-						class="nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}"
-					>
+					<a href="{{ route('accounts.index') }}"
+						class="nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
 						<span class="nav-icon">▦</span>
 						<span>Chart of Accounts</span>
 					</a>
@@ -236,10 +198,8 @@
 		@endcanany
 		@can('loan.view')
 			@if (Route::has('loan-reports.outstanding'))
-				<a
-					href="{{ route('loan-reports.outstanding') }}"
-					class="nav-item {{ request()->routeIs('loan-reports.*') ? 'active' : '' }}"
-				>
+				<a href="{{ route('loan-reports.outstanding') }}"
+					class="nav-item {{ request()->routeIs('loan-reports.*') ? 'active' : '' }}">
 					<span class="nav-icon">▤</span>
 					<span>Laporan Pinjaman</span>
 				</a>
@@ -250,10 +210,8 @@
 
 		@can('member-saving-report.view')
 			@if (Route::has('reports.savings.index'))
-				<a
-					href="{{ route('reports.savings.index') }}"
-					class="nav-item {{ request()->routeIs('reports.savings.*') ? 'active' : '' }}"
-				>
+				<a href="{{ route('reports.savings.index') }}"
+					class="nav-item {{ request()->routeIs('reports.savings.*') ? 'active' : '' }}">
 					<span class="nav-icon">▤</span>
 					<span>Laporan Simpanan Anggota</span>
 				</a>
@@ -262,10 +220,8 @@
 
 		@can('member-loan-report.view')
 			@if (Route::has('reports.loans.index'))
-				<a
-					href="{{ route('reports.loans.index') }}"
-					class="nav-item {{ request()->routeIs('reports.loans.*') ? 'active' : '' }}"
-				>
+				<a href="{{ route('reports.loans.index') }}"
+					class="nav-item {{ request()->routeIs('reports.loans.*') ? 'active' : '' }}">
 					<span class="nav-icon">▤</span>
 					<span>Laporan Pinjaman Anggota</span>
 				</a>

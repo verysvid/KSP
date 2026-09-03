@@ -107,7 +107,7 @@
 								</td>
 
 								<td>
-									{{ number_format((float) $loanType->interest_rate, 4, ',', '.') }}%
+									{{ str_replace('.', ',', rtrim(rtrim(number_format((float) $loanType->interest_rate, 4, '.', ''), '0'), '.')) }}%
 								</td>
 
 								<td>
@@ -188,7 +188,9 @@
 
                         <div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">Bunga</div>
-                            <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ number_format((float) $loanType->interest_rate, 4, ',', '.') }}%</div>
+                            <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">
+								{{ str_replace('.', ',', rtrim(rtrim(number_format((float) $loanType->interest_rate, 4, '.', ''), '0'), '.')) }}%
+							</div>
                         </div>
 
                         <div class="col-span-2">

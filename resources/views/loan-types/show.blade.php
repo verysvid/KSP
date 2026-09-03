@@ -58,7 +58,7 @@
                             Bunga per Bulan
                         </div>
                         <div class="mt-1">
-                            {{ number_format((float) $loanType->interest_rate, 4, ',', '.') }}%
+							{{ str_replace('.', ',', rtrim(rtrim(number_format((float) $loanType->interest_rate, 4, '.', ''), '0'), '.')) }}%
                         </div>
                     </div>
 

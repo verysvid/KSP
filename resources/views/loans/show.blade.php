@@ -160,7 +160,7 @@
                 <div class="info-row">
                     <span>Bunga</span>
                     <strong>
-                        {{ number_format((float) $loan->interest_rate, 4, ',', '.') }}%
+						{{ str_replace('.', ',', rtrim(rtrim(number_format((float) $loan->interest_rate, 4, '.', ''), '0'), '.')) }}%
                     </strong>
                 </div>
 
