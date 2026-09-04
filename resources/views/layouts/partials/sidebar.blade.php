@@ -83,7 +83,7 @@
             @endcan
         </nav>
 
-		@canany(['saving-transaction.view', 'loan.view', 'installment.view'])
+		@canany(['saving-transaction.view', 'loan.view', 'installment.view', 'bulk-transaction.view'])
 			<div class="sidebar-section-title">TRANSAKSI</div>
 		@endcanany
         <nav class="sidebar-nav">
@@ -113,6 +113,16 @@
 						class="nav-item {{ request()->routeIs('loan-payments.*') ? 'active' : '' }}">
 						<span class="nav-icon">▦</span>
 						<span>Pembayaran Angsuran</span>
+					</a>
+				@endif
+			@endcan
+
+			@can('bulk-transaction.view')
+				@if (Route::has('bulk-transactions.index'))
+					<a href="{{ route('bulk-transactions.index') }}"
+					   class="nav-item {{ request()->routeIs('bulk-transactions.*') ? 'active' : '' }}">
+						<span class="nav-icon">☷</span>
+						<span>Transaksi Bulk</span>
 					</a>
 				@endif
 			@endcan
@@ -192,6 +202,8 @@
 				@endif
 			@endcan
         </nav>
+
+		@include('layouts.partials.member-loan-application-menu')
 
 		@canany(['loan.view', 'report.member-deductions.view', 'member-saving-report.view', 'member-loan-report.view'])
 			<div class="sidebar-section-title">LAPORAN</div>

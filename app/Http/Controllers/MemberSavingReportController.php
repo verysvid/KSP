@@ -66,7 +66,7 @@ class MemberSavingReportController extends Controller
             );
 
             $selectedBranchId = (int) $selectedMember->branch_id;
-        } elseif ($user->hasRole('Manager', 'Pengurus')) {
+        } elseif ($user->hasAnyRole(['Manager', 'Pengurus'])) {
             abort_unless(
                 $user->branch_id,
                 403,

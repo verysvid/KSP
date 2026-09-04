@@ -12,21 +12,13 @@ class MemberDeductionReportPermissionSeeder extends Seeder
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-
         $permission = Permission::firstOrCreate([
-            'name' => 'report.member-deductions.view',
-            'guard_name' => 'web',
+            'name' => 'report.member-deductions.view', 'guard_name' => 'web',
         ]);
-
-        foreach (['SuperAdmin', 'Manager'] as $roleName) {
-            $role = Role::firstOrCreate([
-                'name' => $roleName,
-                'guard_name' => 'web',
-            ]);
-
-            $role->givePermissionTo($permission);
+        foreach (['SuperAdmin', 'Manager', 'Pengurus'] as $roleName) {
+            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web'])
+                ->givePermissionTo($permission);
         }
-
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

@@ -440,4 +440,6 @@ Route::get('/branch-test', function () {
 require __DIR__.'/member-deduction-reports.php';
 require __DIR__.'/member-saving-reports.php';
 require __DIR__.'/member-loan-reports.php';
+require __DIR__.'/bulk-transactions.php';
+require __DIR__.'/member-loan-applications.php';
 require __DIR__.'/auth.php';

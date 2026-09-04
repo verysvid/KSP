@@ -61,7 +61,7 @@ class MemberLoanReportController extends Controller
 
             $selectedBranchId = (int) $selectedMember->branch_id;
             $query->where('member_id', $selectedMember->id);
-        } elseif ($user->hasRole('Manager', 'Pengurus')) {
+        } elseif ($user->hasAnyRole(['Manager', 'Pengurus'])) {
             abort_unless(
                 $user->branch_id,
                 403,
@@ -195,7 +195,7 @@ class MemberLoanReportController extends Controller
                 $member && (int) $loan->member_id === (int) $member->id,
                 403
             );
-        } elseif ($user->hasRole('Manager', 'Pengurus')) {
+        } elseif ($user->hasAnyRole(['Manager', 'Pengurus'])) {
             abort_unless(
                 $user->branch_id
                 && (int) $loan->branch_id === (int) $user->branch_id,
