@@ -28,10 +28,21 @@ class SavingTransactionController extends Controller
 
     public function index(Request $request): View
     {
-        $this->authorize(
-            'viewAny',
-            SavingTransaction::class
-        );
+        $this->authorize('viewAny', SavingTransaction::class);
+
+        $user = $request->user();
+        $isAnggota = $user->hasRole('Anggota');
+        $memberId = null;
+
+        if ($isAnggota) {
+            $memberId = $user->member?->id;
+
+            abort_unless(
+                $memberId !== null,
+                403,
+                'Akun user belum terhubung dengan data anggota.'
+            );
+        }
 
         $query = SavingTransaction::query()
             ->with([
@@ -43,51 +54,33 @@ class SavingTransactionController extends Controller
             ->latest('transaction_date')
             ->latest('id');
 
-        $branchId = $this->branchContext
-            ->getCurrentBranchId();
+        $branchId = $this->branchContext->getCurrentBranchId();
 
         if ($branchId !== null) {
-            $query->where(
-                'branch_id',
-                $branchId
-            );
+            $query->where('branch_id', $branchId);
         }
 
-        if (
-            $search = trim(
-                (string) $request->input('search')
-            )
-        ) {
+        if ($memberId !== null) {
+            $query->where('member_id', $memberId);
+        }
+
+        if ($search = trim((string) $request->input('search'))) {
             $query->where(function ($q) use ($search) {
-                $q->where(
-                    'trx_no',
-                    'like',
-                    "%{$search}%"
-                )
-                ->orWhereHas(
-                    'member',
-                    fn ($memberQuery) =>
-                        $memberQuery
-                            ->where(
-                                'name',
-                                'like',
-                                "%{$search}%"
-                            )
-                            ->orWhere(
-                                'member_number',
-                                'like',
-                                "%{$search}%"
-                            )
-                );
+                $q->where('trx_no', 'like', "%{$search}%")
+                    ->orWhereHas(
+                        'member',
+                        fn ($memberQuery) =>
+                            $memberQuery
+                                ->where('name', 'like', "%{$search}%")
+                                ->orWhere('member_number', 'like', "%{$search}%")
+                    );
             });
         }
 
         if ($request->filled('status')) {
             $query->where(
                 'status',
-                strtoupper(
-                    (string) $request->input('status')
-                )
+                strtoupper((string) $request->input('status'))
             );
         }
 
@@ -126,10 +119,11 @@ class SavingTransactionController extends Controller
         $statsQuery = SavingTransaction::query();
 
         if ($branchId !== null) {
-            $statsQuery->where(
-                'branch_id',
-                $branchId
-            );
+            $statsQuery->where('branch_id', $branchId);
+        }
+
+        if ($memberId !== null) {
+            $statsQuery->where('member_id', $memberId);
         }
 
         $pendingCount = (clone $statsQuery)
@@ -156,29 +150,44 @@ class SavingTransactionController extends Controller
         );
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $this->authorize(
-            'create',
-            SavingTransaction::class
-        );
+        $this->authorize('create', SavingTransaction::class);
 
-        $membersQuery = Member::query()
-            ->where('member_status', 'ACTIVE');
+        $user = $request->user();
+        $isAnggota = $user->hasRole('Anggota');
+        $currentMember = null;
 
-        $branchId = $this->branchContext
-            ->getCurrentBranchId();
+        if ($isAnggota) {
+            $currentMember = $user->member;
 
-        if ($branchId !== null) {
-            $membersQuery->where(
-                'branch_id',
-                $branchId
+            abort_unless(
+                $currentMember !== null,
+                403,
+                'Akun user belum terhubung dengan data anggota.'
             );
-        }
 
-        $members = $membersQuery
-            ->orderBy('name')
-            ->get();
+            abort_unless(
+                $currentMember->member_status === 'ACTIVE',
+                403,
+                'Anggota tidak aktif.'
+            );
+
+            $members = collect([$currentMember]);
+        } else {
+            $membersQuery = Member::query()
+                ->where('member_status', 'ACTIVE');
+
+            $branchId = $this->branchContext->getCurrentBranchId();
+
+            if ($branchId !== null) {
+                $membersQuery->where('branch_id', $branchId);
+            }
+
+            $members = $membersQuery
+                ->orderBy('name')
+                ->get();
+        }
 
         $savingTypes = SavingType::query()
             ->where('is_active', true)
@@ -189,7 +198,9 @@ class SavingTransactionController extends Controller
             'saving-transactions.create',
             compact(
                 'members',
-                'savingTypes'
+                'savingTypes',
+                'isAnggota',
+                'currentMember'
             )
         );
     }
@@ -198,44 +209,44 @@ class SavingTransactionController extends Controller
         StoreSavingTransactionRequest $request,
         SavingService $savingService
     ): RedirectResponse {
-        $this->authorize(
-            'create',
-            SavingTransaction::class
-        );
+        $this->authorize('create', SavingTransaction::class);
 
         $data = $request->validated();
+        $user = $request->user();
 
-        if (! $this->branchContext->isSuperAdmin()) {
-            $branchId = $this->branchContext
-                ->getCurrentBranchId();
+        if ($user->hasRole('Anggota')) {
+            $member = $user->member;
 
             abort_unless(
-                $branchId !== null,
-                403
+                $member !== null,
+                403,
+                'Akun user belum terhubung dengan data anggota.'
             );
+
+            abort_unless(
+                $member->member_status === 'ACTIVE',
+                403,
+                'Anggota tidak aktif.'
+            );
+
+            $data['member_id'] = $member->id;
+        } elseif (! $this->branchContext->isSuperAdmin()) {
+            $branchId = $this->branchContext->getCurrentBranchId();
+
+            abort_unless($branchId !== null, 403);
 
             $memberExists = Member::query()
                 ->whereKey($data['member_id'])
-                ->where(
-                    'branch_id',
-                    $branchId
-                )
+                ->where('branch_id', $branchId)
                 ->exists();
 
-            abort_unless(
-                $memberExists,
-                403
-            );
+            abort_unless($memberExists, 403);
         }
 
-        $transaction = $savingService
-            ->createTransaction($data);
+        $transaction = $savingService->createTransaction($data);
 
         return redirect()
-            ->route(
-                'saving-transactions.show',
-                $transaction
-            )
+            ->route('saving-transactions.show', $transaction)
             ->with(
                 'success',
                 'Transaksi simpanan berhasil dibuat dan menunggu approval.'
@@ -246,14 +257,9 @@ class SavingTransactionController extends Controller
         SavingTransaction $savingTransaction,
         SavingService $savingService
     ): View {
-        $this->authorize(
-            'view',
-            $savingTransaction
-        );
+        $this->authorize('view', $savingTransaction);
 
-        $this->ensureTransactionAccess(
-            $savingTransaction
-        );
+        $this->ensureTransactionAccess($savingTransaction);
 
         $savingTransaction->load([
             'member',
@@ -264,29 +270,16 @@ class SavingTransactionController extends Controller
             'journalEntry',
         ]);
 
-        $approvedBalance = $savingService
-            ->getApprovedBalance(
-                $savingTransaction->member_id,
-                $savingTransaction->saving_type_id
-            );
+        $approvedBalance = $savingService->getApprovedBalance(
+            $savingTransaction->member_id,
+            $savingTransaction->saving_type_id
+        );
 
         $cashAccounts = Account::query()
-            ->where(
-                'type',
-                Account::TYPE_ASSET
-            )
-            ->where(
-                'is_cash_bank',
-                true
-            )
-            ->where(
-                'is_active',
-                true
-            )
-            ->where(
-                'is_postable',
-                true
-            )
+            ->where('type', Account::TYPE_ASSET)
+            ->where('is_cash_bank', true)
+            ->where('is_active', true)
+            ->where('is_postable', true)
             ->orderBy('code')
             ->get([
                 'id',
@@ -310,14 +303,9 @@ class SavingTransactionController extends Controller
         SavingService $savingService,
         SavingJournalService $savingJournalService
     ): RedirectResponse {
-        $this->authorize(
-            'approve',
-            $savingTransaction
-        );
+        $this->authorize('approve', $savingTransaction);
 
-        $this->ensureTransactionAccess(
-            $savingTransaction
-        );
+        $this->ensureTransactionAccess($savingTransaction);
 
         $validated = $request->validated();
 
@@ -327,14 +315,11 @@ class SavingTransactionController extends Controller
             $savingJournalService,
             $validated
         ) {
-            $savingService->approve(
-                $savingTransaction
-            );
+            $savingService->approve($savingTransaction);
 
             $savingJournalService->post(
                 transaction: $savingTransaction,
-                cashAccountId:
-                    (int) $validated['cash_account_id'],
+                cashAccountId: (int) $validated['cash_account_id'],
                 userId: auth()->id()
             );
         });
@@ -350,14 +335,9 @@ class SavingTransactionController extends Controller
         SavingTransaction $savingTransaction,
         SavingService $savingService
     ): RedirectResponse {
-        $this->authorize(
-            'reject',
-            $savingTransaction
-        );
+        $this->authorize('reject', $savingTransaction);
 
-        $this->ensureTransactionAccess(
-            $savingTransaction
-        );
+        $this->ensureTransactionAccess($savingTransaction);
 
         $validated = $request->validate([
             'reject_reason' => [
@@ -385,13 +365,27 @@ class SavingTransactionController extends Controller
             return;
         }
 
-        $branchId = $this->branchContext
-            ->getCurrentBranchId();
+        $user = auth()->user();
+
+        abort_unless($user !== null, 403);
+
+        if ($user->hasRole('Anggota')) {
+            $memberId = $user->member?->id;
+
+            abort_unless(
+                $memberId !== null
+                && (int) $savingTransaction->member_id === (int) $memberId,
+                403
+            );
+
+            return;
+        }
+
+        $branchId = $this->branchContext->getCurrentBranchId();
 
         abort_unless(
             $branchId !== null
-            && (int) $savingTransaction->branch_id
-                === (int) $branchId,
+            && (int) $savingTransaction->branch_id === (int) $branchId,
             403
         );
     }

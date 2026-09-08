@@ -100,8 +100,8 @@
 
     {{-- Email --}}
     <div>
-        <label for="email" class="form-label">Email</label>
-        <input id="email" name="email" type="email" maxlength="255"
+        <label for="email" class="form-label">Email <span class="text-red-500">*</span></label>
+        <input id="email" name="email" type="email" maxlength="255" required
             value="{{ old('email', $member->email ?? '') }}" class="form-control" placeholder="nama@email.com">
         @error('email') <p class="form-error">{{ $message }}</p> @enderror
     </div>
@@ -148,14 +148,19 @@
     </div>
 
     {{-- Status --}}
-    <div>
-        <label for="member_status" class="form-label">Status <span class="text-red-500">*</span></label>
-        <select id="member_status" name="member_status" class="form-select" required>
-            <option value="ACTIVE" @selected(old('member_status', $member->member_status ?? 'ACTIVE') === 'ACTIVE')>Aktif</option>
-            <option value="INACTIVE" @selected(old('member_status', $member->member_status ?? 'ACTIVE') === 'INACTIVE')>Tidak Aktif</option>
-        </select>
-        @error('member_status') <p class="form-error">{{ $message }}</p> @enderror
-    </div>
+    @if(isset($member))
+        <div>
+            <label for="member_status" class="form-label">Status <span class="text-red-500">*</span></label>
+            <select id="member_status" name="member_status" class="form-select" required>
+                <option value="NEW" @selected(old('member_status', $member->member_status) === 'NEW')>NEW</option>
+                <option value="ACTIVE" @selected(old('member_status', $member->member_status) === 'ACTIVE')>Aktif</option>
+                <option value="INACTIVE" @selected(old('member_status', $member->member_status) === 'INACTIVE')>Tidak Aktif</option>
+            </select>
+            @error('member_status') <p class="form-error">{{ $message }}</p> @enderror
+        </div>
+    @else
+        <input type="hidden" name="member_status" value="NEW">
+    @endif
 
     {{-- Alamat --}}
     <div class="md:col-span-2">

@@ -186,6 +186,13 @@
                                         Detail
                                     </a>
 
+									@if($loan->status === 'DRAFT')
+										<a href="{{ route('loans.simulation', $loan) }}"
+										   class="btn btn-secondary">
+											Simulasi
+										</a>
+									@endif
+
                                     @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.edit'))
                                         <a href="{{ route('loans.edit', $loan) }}"
                                            class="btn btn-secondary">
@@ -271,6 +278,13 @@
                            class="btn btn-secondary">
                             Detail
                         </a>
+
+						@if($loan->status === 'DRAFT')
+							<a href="{{ route('loans.simulation', $loan) }}"
+							   class="btn btn-secondary">
+								Simulasi
+							</a>
+						@endif
 
                         @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.edit'))
                             <a href="{{ route('loans.edit', $loan) }}"

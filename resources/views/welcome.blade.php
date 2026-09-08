@@ -478,7 +478,7 @@
 
 
             {{-- Login --}}
-			<div class="mt-12 flex justify-center">
+			<div class="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
 
 				@auth
 
@@ -536,6 +536,14 @@
 						"
 					>
 						Login
+					</a>
+
+
+					<a
+						href="{{ route('member-registration.create') }}"
+						class="inline-flex min-w-[180px] items-center justify-center rounded-xl border border-blue-600 bg-white px-8 py-3.5 text-base font-bold text-blue-600 shadow-lg transition duration-200 hover:bg-blue-50 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-200"
+					>
+						Registrasi Anggota
 					</a>
 
 				@endauth

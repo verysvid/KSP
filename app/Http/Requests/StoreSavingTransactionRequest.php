@@ -15,18 +15,55 @@ class StoreSavingTransactionRequest extends FormRequest
         return $this->user()?->can('saving-transaction.create') ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $user = $this->user();
+
+        if ($user?->hasRole('Anggota')) {
+            $member = $user->member;
+
+            if ($member) {
+                $this->merge([
+                    'member_id' => $member->id,
+                ]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'member_id' => ['required', 'integer', 'exists:members,id'],
-            'saving_type_id' => ['required', 'integer', 'exists:saving_types,id'],
-            'transaction_date' => ['required', 'date'],
+            'member_id' => [
+                'required',
+                'integer',
+                'exists:members,id',
+            ],
+            'saving_type_id' => [
+                'required',
+                'integer',
+                'exists:saving_types,id',
+            ],
+            'transaction_date' => [
+                'required',
+                'date',
+            ],
             'transaction_type' => [
                 'required',
-                Rule::in(['SETORAN', 'PENARIKAN']),
+                Rule::in([
+                    'SETORAN',
+                    'PENARIKAN',
+                ]),
             ],
-            'amount' => ['required', 'numeric', 'gt:0'],
-            'remarks' => ['nullable', 'string', 'max:2000'],
+            'amount' => [
+                'required',
+                'numeric',
+                'gt:0',
+            ],
+            'remarks' => [
+                'nullable',
+                'string',
+                'max:2000',
+            ],
         ];
     }
 
@@ -38,11 +75,40 @@ class StoreSavingTransactionRequest extends FormRequest
                     return;
                 }
 
-                $member = Member::query()->find($this->integer('member_id'));
-                $savingType = SavingType::query()->find($this->integer('saving_type_id'));
+                $user = $this->user();
+
+                if (
+                    $user?->hasRole('Anggota')
+                    && ! $user->member
+                ) {
+                    $validator->errors()->add(
+                        'member_id',
+                        'Akun user belum terhubung dengan data anggota.'
+                    );
+
+                    return;
+                }
+
+                $member = Member::query()
+                    ->find($this->integer('member_id'));
+
+                $savingType = SavingType::query()
+                    ->find($this->integer('saving_type_id'));
 
                 if (! $member || ! $savingType) {
                     return;
+                }
+
+                if ($user?->hasRole('Anggota')) {
+                    if (
+                        (int) $member->user_id
+                        !== (int) $user->id
+                    ) {
+                        $validator->errors()->add(
+                            'member_id',
+                            'Transaksi hanya dapat dilakukan untuk data anggota milik Anda.'
+                        );
+                    }
                 }
 
                 if ($member->member_status !== 'ACTIVE') {
@@ -63,7 +129,8 @@ class StoreSavingTransactionRequest extends FormRequest
 
                 if (
                     ! $branchContext->isSuperAdmin()
-                    && (int) $member->branch_id !== (int) $branchContext->getCurrentBranchId()
+                    && (int) $member->branch_id
+                        !== (int) $branchContext->getCurrentBranchId()
                 ) {
                     $validator->errors()->add(
                         'member_id',

@@ -11,6 +11,13 @@
                 Kembali
             </a>
 
+			@if($loan->status === 'DRAFT')
+				<a href="{{ route('loans.simulation', $loan) }}"
+				   class="btn btn-secondary">
+					Simulasi Angsuran
+				</a>
+			@endif
+
             @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.edit'))
                 <a href="{{ route('loans.edit', $loan) }}"
                    class="btn btn-secondary">
@@ -35,7 +42,7 @@
                 </form>
             @endif
 
-			@if(in_array($loan->status, ['ACTIVE', 'PAID_OFF'], true))
+			@if(!auth()->user()?->hasRole('Anggota') && in_array($loan->status, ['ACTIVE', 'PAID_OFF'], true))
 				<form method="POST" action="{{ route('loans.overdue.refresh') }}">
 					@csrf
 					@method('PATCH')

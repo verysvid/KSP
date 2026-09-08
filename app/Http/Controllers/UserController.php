@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Branch;
+use App\Models\Member;
 use App\Models\User;
 use App\Services\AuditLogService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -400,6 +401,16 @@ class UserController extends Controller
                 $user->syncRoles([
                     $validated['role'],
                 ]);
+
+                /*
+                 * Sinkronisasi hanya jika user memang
+                 * terhubung dengan data Member.
+                 *
+                 * User internal seperti SuperAdmin, Manager,
+                 * Pengurus, Accounting yang tidak memiliki
+                 * members.user_id tidak akan terpengaruh.
+                 */
+                $this->syncMemberStatusFromUser($user);
             }
         );
 
@@ -457,9 +468,15 @@ class UserController extends Controller
             );
         }
 
-        $user->update([
-            'is_active' => false,
-        ]);
+        DB::transaction(function () use ($user) {
+            $user->update([
+                'is_active' => false,
+            ]);
+
+            $this->syncMemberStatusFromUser($user);
+        });
+
+        $user->refresh();
 
         $this->audit(
             'INACTIVE',
@@ -499,9 +516,15 @@ class UserController extends Controller
             );
         }
 
-        $user->update([
-            'is_active' => true,
-        ]);
+        DB::transaction(function () use ($user) {
+            $user->update([
+                'is_active' => true,
+            ]);
+
+            $this->syncMemberStatusFromUser($user);
+        });
+
+        $user->refresh();
 
         $this->audit(
             'ACTIVE',
@@ -521,6 +544,39 @@ class UserController extends Controller
                 'success',
                 'User berhasil diaktifkan.'
             );
+    }
+
+    private function syncMemberStatusFromUser(
+        User $user
+    ): void {
+        $member = Member::query()
+            ->where('user_id', $user->id)
+            ->first();
+
+        /*
+         * Tidak semua User adalah Anggota.
+         *
+         * Jika tidak ada Member yang terhubung,
+         * tidak ada proses apa pun pada tabel members.
+         */
+        if (! $member) {
+            return;
+        }
+
+        $targetStatus = $user->is_active
+            ? 'ACTIVE'
+            : 'INACTIVE';
+
+        /*
+         * Hindari query UPDATE jika status sudah sama.
+         */
+        if ($member->member_status === $targetStatus) {
+            return;
+        }
+
+        $member->update([
+            'member_status' => $targetStatus,
+        ]);
     }
 
     private function assignableRoles(

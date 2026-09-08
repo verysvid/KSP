@@ -20,7 +20,16 @@ class LoanDashboardController extends Controller
 
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->can('loan.view'), 403);
+		abort_if(
+			$request->user()?->hasRole('Anggota'),
+			403,
+			'Anda tidak memiliki akses ke Dashboard Pinjaman.'
+		);
+
+		abort_unless(
+			$request->user()?->can('loan.view'),
+			403
+		);
 
         $today = now()->startOfDay();
         $nextSevenDays = $today->copy()->addDays(7);

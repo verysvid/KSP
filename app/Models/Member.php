@@ -11,9 +11,24 @@ class Member extends Model
     use BelongsToBranch;
 
     protected $fillable = [
-        'branch_id', 'member_type_id', 'user_id', 'member_number', 'nik', 'name', 'gender',
-        'birth_place', 'birth_date', 'address', 'phone', 'email', 'occupation', 'amount_saving',
-        'join_date', 'member_status', 'photo', 'notes',
+        'branch_id',
+        'member_type_id',
+        'user_id',
+        'member_number',
+        'nik',
+        'name',
+        'gender',
+        'birth_place',
+        'birth_date',
+        'address',
+        'phone',
+        'email',
+        'occupation',
+        'amount_saving',
+        'join_date',
+        'member_status',
+        'photo',
+        'notes',
     ];
 
     protected $casts = [
@@ -25,18 +40,86 @@ class Member extends Model
     protected static function booted(): void
     {
         static::creating(function (Member $member) {
-            if (!$member->branch_id || $member->member_number) return;
-            $branch = Branch::find($member->branch_id);
-            if (!$branch) return;
-            $last = Member::withoutGlobalScopes()->where('branch_id', $member->branch_id)->orderByDesc('id')->first();
-            $next = 1;
-            if ($last && $last->member_number) {
-                $next = ((int) str_replace($branch->code . '-', '', $last->member_number)) + 1;
+            if (! $member->branch_id || $member->member_number) {
+                return;
             }
-            $member->member_number = sprintf('%s-%06d', $branch->code, $next);
+
+            $branch = Branch::find($member->branch_id);
+
+            if (! $branch) {
+                return;
+            }
+
+            $prefix = strtoupper(trim($branch->code));
+
+            /*
+             * Cari nomor anggota terbesar berdasarkan angka
+             * setelah kode cabang.
+             *
+             * Contoh:
+             * PST-000001
+             * PST-000003
+             * PST-000010
+             *
+             * Maka berikutnya = PST-000011
+             */
+            $lastMember = Member::withoutGlobalScopes()
+                ->where(
+                    'member_number',
+                    'like',
+                    $prefix . '-%'
+                )
+                ->orderByRaw(
+                    "CAST(SUBSTRING_INDEX(member_number, '-', -1) AS UNSIGNED) DESC"
+                )
+                ->first();
+
+            $next = 1;
+
+            if ($lastMember && $lastMember->member_number) {
+                $lastNumber = (int) substr(
+                    $lastMember->member_number,
+                    strrpos($lastMember->member_number, '-') + 1
+                );
+
+                $next = $lastNumber + 1;
+            }
+
+            /*
+             * Safety check tambahan.
+             * Kalau nomor ternyata sudah pernah dipakai,
+             * lompat ke nomor berikutnya.
+             */
+            do {
+                $memberNumber = sprintf(
+                    '%s-%06d',
+                    $prefix,
+                    $next
+                );
+
+                $exists = Member::withoutGlobalScopes()
+                    ->where(
+                        'member_number',
+                        $memberNumber
+                    )
+                    ->exists();
+
+                if ($exists) {
+                    $next++;
+                }
+            } while ($exists);
+
+            $member->member_number = $memberNumber;
         });
     }
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function memberType(): BelongsTo { return $this->belongsTo(MemberType::class); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function memberType(): BelongsTo
+    {
+        return $this->belongsTo(MemberType::class);
+    }
 }

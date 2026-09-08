@@ -12,46 +12,84 @@ class SavingTransactionPolicy
         return $user->can('saving-transaction.view');
     }
 
-    public function view(User $user, SavingTransaction $transaction): bool
-    {
-        if ($user->hasRole('SuperAdmin')) {
-            return $user->can('saving-transaction.view');
+    public function view(
+        User $user,
+        SavingTransaction $transaction
+    ): bool {
+        if (! $user->can('saving-transaction.view')) {
+            return false;
         }
 
-        return (int) $user->branch_id === (int) $transaction->branch_id
-            && $user->can('saving-transaction.view');
+        if ($user->hasRole('SuperAdmin')) {
+            return true;
+        }
+
+        if ($user->hasRole('Anggota')) {
+            $memberId = $user->member?->id;
+
+            return $memberId !== null
+                && (int) $transaction->member_id === (int) $memberId;
+        }
+
+        return (int) $user->branch_id === (int) $transaction->branch_id;
     }
 
     public function create(User $user): bool
     {
-        return $user->can('saving-transaction.create');
+        if (! $user->can('saving-transaction.create')) {
+            return false;
+        }
+
+        if ($user->hasRole('Anggota')) {
+            return $user->member()
+                ->where('member_status', 'ACTIVE')
+                ->exists();
+        }
+
+        return true;
     }
 
-    public function approve(User $user, SavingTransaction $transaction): bool
-    {
-        if ($transaction->status !== 'PENDING') {
+    public function approve(
+        User $user,
+        SavingTransaction $transaction
+    ): bool {
+        if ($user->hasRole('Anggota')) {
+            return false;
+        }
+
+        if (
+            $transaction->status !== 'PENDING'
+            || ! $user->can('saving-transaction.approve')
+        ) {
             return false;
         }
 
         if ($user->hasRole('SuperAdmin')) {
-            return $user->can('saving-transaction.approve');
+            return true;
         }
 
-        return (int) $user->branch_id === (int) $transaction->branch_id
-            && $user->can('saving-transaction.approve');
+        return (int) $user->branch_id === (int) $transaction->branch_id;
     }
 
-    public function reject(User $user, SavingTransaction $transaction): bool
-    {
-        if ($transaction->status !== 'PENDING') {
+    public function reject(
+        User $user,
+        SavingTransaction $transaction
+    ): bool {
+        if ($user->hasRole('Anggota')) {
+            return false;
+        }
+
+        if (
+            $transaction->status !== 'PENDING'
+            || ! $user->can('saving-transaction.reject')
+        ) {
             return false;
         }
 
         if ($user->hasRole('SuperAdmin')) {
-            return $user->can('saving-transaction.reject');
+            return true;
         }
 
-        return (int) $user->branch_id === (int) $transaction->branch_id
-            && $user->can('saving-transaction.reject');
+        return (int) $user->branch_id === (int) $transaction->branch_id;
     }
 }

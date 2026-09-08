@@ -30,6 +30,7 @@
                    placeholder="Cari nomor anggota, nama, NIK, telepon..." class="form-control">
             <select name="status" class="form-select">
                 <option value="">Semua Status</option>
+                <option value="NEW" @selected(request('status') === 'NEW')>NEW / Menunggu Aktivasi</option>
                 <option value="ACTIVE" @selected(request('status') === 'ACTIVE')>Aktif</option>
                 <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Tidak Aktif</option>
             </select>
@@ -57,10 +58,18 @@
                             <td>{{ $member->branch?->name ?? '-' }}</td>
                             <td>
                                 @if($member->user_id && $member->user)
-                                    <a href="{{ route('users.show', $member->user) }}" class="badge badge-success">User Aktif</a>
-                                    <span class="table-secondary">{{ $member->user->email }}</span>
-                                @elseif($member->member_status === 'ACTIVE' && auth()->user()->can('user.create'))
-                                    <a href="{{ route('members.user.create', $member) }}" class="btn btn-primary">Add to User</a>
+									<a href="{{ route('users.show', $member->user) }}"
+									   class="badge {{ $member->user->is_active ? 'badge-success' : 'badge-danger' }}">
+										{{ $member->user->is_active ? 'User Aktif' : 'User Inactive' }}
+									</a>
+									<span class="table-secondary">
+										{{ $member->user->email }}
+									</span>
+                                @elseif($member->member_status === 'NEW' && auth()->user()->can('member.edit'))
+                                    <form method="POST" action="{{ route('members.activate', $member) }}" class="member-activation-form" data-member="{{ $member->member_number }} - {{ $member->name }}">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn btn-primary">Aktivasi</button>
+                                    </form>
                                 @else
                                     <span class="text-sm text-slate-400">-</span>
                                 @endif
@@ -107,11 +116,16 @@
 
                     <div class="mt-3">
                         @if($member->user_id && $member->user)
-                            <a href="{{ route('users.show', $member->user) }}" class="badge badge-success">
-                                User Aktif · {{ $member->user->email }}
-                            </a>
-                        @elseif($member->member_status === 'ACTIVE' && auth()->user()->can('user.create'))
-                            <a href="{{ route('members.user.create', $member) }}" class="btn btn-primary w-full">Add to User</a>
+							<a href="{{ route('users.show', $member->user) }}"
+							   class="badge {{ $member->user->is_active ? 'badge-success' : 'badge-danger' }}">
+								{{ $member->user->is_active ? 'User Aktif' : 'User Inactive' }}
+								· {{ $member->user->email }}
+							</a>
+                        @elseif($member->member_status === 'NEW' && auth()->user()->can('member.edit'))
+                            <form method="POST" action="{{ route('members.activate', $member) }}" class="member-activation-form" data-member="{{ $member->member_number }} - {{ $member->name }}">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="btn btn-primary w-full">Aktivasi</button>
+                            </form>
                         @endif
                     </div>
 
@@ -134,6 +148,20 @@
 
     @push('scripts')
     <script>
+
+        document.querySelectorAll('.member-activation-form').forEach((form) => {
+            form.addEventListener('submit', function (event) {
+                if (!window.swalConfirm) return;
+                event.preventDefault();
+                window.swalConfirm({
+                    icon: 'question',
+                    title: 'Aktivasi Anggota?',
+                    text: `Anggota ${form.dataset.member} akan diaktifkan dan dibuatkan akun login role Anggota dengan password awal password123.`,
+                    confirmButtonText: 'Ya, Aktivasi',
+                }).then((result) => { if (result.isConfirmed) form.submit(); });
+            });
+        });
+
         document.querySelectorAll('.member-deactivate-form').forEach((form) => {
             form.addEventListener('submit', function (event) {
                 if (!window.swalConfirm) return;

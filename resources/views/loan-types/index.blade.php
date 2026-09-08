@@ -235,39 +235,41 @@
         @endif
     </x-card>
 
-    @push('scripts')
-        <script type="module">
-            import { swalConfirm } from '/resources/js/sweetalert.js';
+@push('scripts')
+    <script>
+        document.querySelectorAll('.loan-type-toggle-form')
+            .forEach((form) => {
+                form.addEventListener('submit', function (event) {
+                    if (!window.swalConfirm) {
+                        return;
+                    }
 
-            document.addEventListener('DOMContentLoaded', function () {
-                document.querySelectorAll('.loan-type-toggle-form').forEach(function (form) {
-                    form.addEventListener('submit', function (event) {
-                        event.preventDefault();
+                    event.preventDefault();
 
-                        const name = form.dataset.name || '';
-                        const isActive = form.dataset.active === '1';
+                    const active = form.dataset.active === '1';
 
-                        swalConfirm({
-                            icon: 'question',
-                            title: isActive ? 'Nonaktifkan Jenis Pinjaman?' : 'Aktifkan Jenis Pinjaman?',
-                            html: 'Jenis pinjaman <strong>' + escapeHtml(name) + '</strong> akan ' + (isActive ? 'dinonaktifkan.' : 'diaktifkan.'),
-                            confirmButtonText: isActive ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan',
-                            cancelButtonText: 'Batal',
-                            showCancelButton: true,
-                        }).then(function (result) {
-                            if (result.isConfirmed) {
-                                form.submit();
-                            }
-                        });
+                    window.swalConfirm({
+                        icon: active ? 'warning' : 'question',
+                        title: active
+                            ? 'Nonaktifkan Jenis Pinjaman?'
+                            : 'Aktifkan Jenis Pinjaman?',
+                        text: active
+                            ? `Jenis pinjaman ${form.dataset.name} akan dinonaktifkan.`
+                            : `Jenis pinjaman ${form.dataset.name} akan diaktifkan kembali.`,
+                        confirmButtonText: active
+                            ? 'Ya, Nonaktifkan'
+                            : 'Ya, Aktifkan',
+                        confirmButtonColor: active
+                            ? '#dc2626'
+                            : '#4f46e5',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
                     });
                 });
-
-                function escapeHtml(value) {
-                    const div = document.createElement('div');
-                    div.textContent = String(value);
-                    return div.innerHTML;
-                }
             });
-        </script>
-    @endpush
+    </script>
+@endpush
+
 </x-app-layout>

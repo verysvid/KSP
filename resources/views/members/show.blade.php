@@ -4,8 +4,11 @@
     <x-page-header title="Detail Anggota" description="{{ $member->member_number }}">
         <x-slot name="actions">
             <a href="{{ route('members.index') }}" class="btn btn-secondary">Kembali</a>
-            @if(!$member->user_id && $member->member_status === 'ACTIVE' && auth()->user()->can('user.create'))
-                <a href="{{ route('members.user.create', $member) }}" class="btn btn-primary">Add to User</a>
+            @if(!$member->user_id && $member->member_status === 'NEW' && auth()->user()->can('member.edit'))
+                <form method="POST" action="{{ route('members.activate', $member) }}" class="member-activation-form">
+                    @csrf @method('PATCH')
+                    <button type="submit" class="btn btn-primary">Aktivasi</button>
+                </form>
             @endif
             @can('update', $member)
                 <a href="{{ route('members.edit', $member) }}" class="btn btn-primary">Edit Anggota</a>
@@ -57,4 +60,20 @@
             </div>
         </x-card>
     </div>
+    @push('scripts')
+    <script>
+        document.querySelectorAll('.member-activation-form').forEach((form) => {
+            form.addEventListener('submit', function (event) {
+                if (!window.swalConfirm) return;
+                event.preventDefault();
+                window.swalConfirm({
+                    icon: 'question',
+                    title: 'Aktivasi Anggota?',
+                    text: 'Anggota akan diaktifkan dan dibuatkan akun login role Anggota dengan password awal password123.',
+                    confirmButtonText: 'Ya, Aktivasi',
+                }).then((result) => { if (result.isConfirmed) form.submit(); });
+            });
+        });
+    </script>
+    @endpush
 </x-app-layout>

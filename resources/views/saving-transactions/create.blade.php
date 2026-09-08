@@ -26,7 +26,7 @@
                         'is_mandatory' => (bool) $type->is_mandatory,
                         'is_withdrawable' => (bool) $type->is_withdrawable,
                     ])->values()),
-                    @js(old('member_id')),
+                    @js(old('member_id', $isAnggota ? $currentMember?->id : null)),
                     @js(old('saving_type_id')),
                     @js(old('amount'))
                 )"
@@ -35,49 +35,74 @@
                 @csrf
 
                 <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <div class="relative md:col-span-2">
-                        <label for="member_search" class="form-label">Anggota <span class="text-red-500">*</span></label>
-                        <input
-                            id="member_search"
-                            type="text"
-                            x-model="memberSearch"
-                            @input="memberOpen = true; memberId = ''; savingTypeChanged()"
-                            @focus="memberOpen = true"
-                            @keydown.escape="memberOpen = false"
-                            @keydown.arrow-down.prevent="moveMember(1)"
-                            @keydown.arrow-up.prevent="moveMember(-1)"
-                            @keydown.enter.prevent="selectHighlightedMember()"
-                            class="form-control"
-                            placeholder="Ketik nomor anggota atau nama anggota..."
-                            autocomplete="off"
-                        >
-                        <input type="hidden" name="member_id" :value="memberId">
+                    @if($isAnggota)
+                        <div class="md:col-span-2">
+                            <label class="form-label">Anggota</label>
 
-                        <div
-                            x-show="memberOpen"
-                            x-transition
-                            @click.outside="memberOpen = false"
-                            x-cloak
-                            class="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
-                        >
-                            <template x-if="filteredMembers.length === 0">
-                                <div class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">Anggota tidak ditemukan.</div>
-                            </template>
-                            <template x-for="(member, index) in filteredMembers" :key="member.id">
-                                <button
-                                    type="button"
-                                    @click="selectMember(member)"
-                                    @mouseenter="memberHighlight = index"
-                                    class="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-indigo-50 dark:border-slate-700 dark:hover:bg-slate-700"
-                                    :class="memberHighlight === index ? 'bg-indigo-50 dark:bg-slate-700' : ''"
-                                >
-                                    <div class="font-semibold text-slate-900 dark:text-white" x-text="member.member_number"></div>
-                                    <div class="mt-0.5 text-sm text-slate-500 dark:text-slate-400" x-text="member.name"></div>
-                                </button>
-                            </template>
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+                                <div class="font-semibold text-slate-900 dark:text-white">
+                                    {{ $currentMember?->member_number }} - {{ $currentMember?->name }}
+                                </div>
+
+                                <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                    Transaksi akan dicatat otomatis atas nama anggota yang sedang login.
+                                </div>
+                            </div>
+
+                            <input
+                                type="hidden"
+                                name="member_id"
+                                value="{{ $currentMember?->id }}">
+
+                            @error('member_id')
+                                <p class="form-error">{{ $message }}</p>
+                            @enderror
                         </div>
-                        @error('member_id') <p class="form-error">{{ $message }}</p> @enderror
-                    </div>
+                    @else
+                        <div class="relative md:col-span-2">
+                            <label for="member_search" class="form-label">Anggota <span class="text-red-500">*</span></label>
+                            <input
+                                id="member_search"
+                                type="text"
+                                x-model="memberSearch"
+                                @input="memberOpen = true; memberId = ''; savingTypeChanged()"
+                                @focus="memberOpen = true"
+                                @keydown.escape="memberOpen = false"
+                                @keydown.arrow-down.prevent="moveMember(1)"
+                                @keydown.arrow-up.prevent="moveMember(-1)"
+                                @keydown.enter.prevent="selectHighlightedMember()"
+                                class="form-control"
+                                placeholder="Ketik nomor anggota atau nama anggota..."
+                                autocomplete="off"
+                            >
+                            <input type="hidden" name="member_id" :value="memberId">
+
+                            <div
+                                x-show="memberOpen"
+                                x-transition
+                                @click.outside="memberOpen = false"
+                                x-cloak
+                                class="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                            >
+                                <template x-if="filteredMembers.length === 0">
+                                    <div class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">Anggota tidak ditemukan.</div>
+                                </template>
+                                <template x-for="(member, index) in filteredMembers" :key="member.id">
+                                    <button
+                                        type="button"
+                                        @click="selectMember(member)"
+                                        @mouseenter="memberHighlight = index"
+                                        class="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-indigo-50 dark:border-slate-700 dark:hover:bg-slate-700"
+                                        :class="memberHighlight === index ? 'bg-indigo-50 dark:bg-slate-700' : ''"
+                                    >
+                                        <div class="font-semibold text-slate-900 dark:text-white" x-text="member.member_number"></div>
+                                        <div class="mt-0.5 text-sm text-slate-500 dark:text-slate-400" x-text="member.name"></div>
+                                    </button>
+                                </template>
+                            </div>
+                            @error('member_id') <p class="form-error">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
 
                     <div>
                         <label for="saving_type_id" class="form-label">Jenis Simpanan <span class="text-red-500">*</span></label>
@@ -289,9 +314,10 @@
                     prepareSubmit(event) {
                         if (!this.memberId) {
                             event.preventDefault();
-                            if (window.swalError) window.swalError('Silakan pilih anggota terlebih dahulu.');
+                            if (window.swalError) window.swalError('Data anggota tidak tersedia.');
                             return;
                         }
+
                         if (!this.amountRaw || Number(this.amountRaw) <= 0) {
                             event.preventDefault();
                             if (window.swalError) window.swalError('Nominal transaksi harus lebih besar dari 0.');

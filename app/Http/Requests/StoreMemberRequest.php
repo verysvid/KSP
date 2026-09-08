@@ -24,11 +24,11 @@ class StoreMemberRequest extends FormRequest
             'birth_date' => ['nullable', 'date'],
             'address' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:members,email', 'unique:users,email'],
             'occupation' => ['nullable', 'string', 'max:255'],
             'amount_saving' => ['nullable', 'numeric', 'min:0', 'max:9999999999999.99'],
             'join_date' => ['required', 'date'],
-            'member_status' => ['required', Rule::in(['ACTIVE', 'INACTIVE'])],
+            'member_status' => ['nullable', Rule::in(['NEW', 'ACTIVE', 'INACTIVE'])],
             'notes' => ['nullable', 'string'],
         ];
     }

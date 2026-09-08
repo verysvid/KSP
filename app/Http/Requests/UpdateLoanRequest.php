@@ -9,7 +9,7 @@ class UpdateLoanRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('loan.edit') === true;
+        return $this->user()?->can('loan.create') === true;
     }
 
     protected function prepareForValidation(): void
@@ -26,56 +26,28 @@ class UpdateLoanRequest extends FormRequest
     public function rules(): array
     {
         $isSuperAdmin = $this->user()?->hasRole('SuperAdmin') === true;
+        $isAnggota = $this->user()?->hasRole('Anggota') === true;
 
         return [
             'branch_id' => [
                 Rule::requiredIf($isSuperAdmin),
-                'nullable',
-                'integer',
+                'nullable', 'integer',
                 Rule::exists('branches', 'id')->where('is_active', true),
             ],
-
             'member_id' => [
-                'required',
-                'integer',
+                Rule::requiredIf(!$isAnggota),
+                'nullable', 'integer',
                 Rule::exists('members', 'id'),
             ],
-
             'loan_type_id' => [
-                'required',
-                'integer',
+                'required', 'integer',
                 Rule::exists('loan_types', 'id')->where('is_active', true),
             ],
-
-            'application_date' => [
-                'required',
-                'date',
-            ],
-
-            'principal_amount' => [
-                'required',
-                'numeric',
-                'min:0.01',
-            ],
-
-            'tenor_months' => [
-                'required',
-                'integer',
-                'min:1',
-                'max:600',
-            ],
-
-            'due_day' => [
-                'required',
-                'integer',
-                'between:1,28',
-            ],
-
-            'notes' => [
-                'nullable',
-                'string',
-                'max:5000',
-            ],
+            'application_date' => ['required', 'date'],
+            'principal_amount' => ['required', 'numeric', 'min:0.01'],
+            'tenor_months' => ['required', 'integer', 'min:1', 'max:600'],
+            'due_day' => ['required', 'integer', 'between:1,28'],
+            'notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
 
@@ -85,13 +57,19 @@ class UpdateLoanRequest extends FormRequest
             'branch_id.required' => 'Cabang wajib dipilih.',
             'member_id.required' => 'Anggota wajib dipilih.',
             'loan_type_id.required' => 'Jenis pinjaman wajib dipilih.',
+            'loan_type_id.exists' => 'Jenis pinjaman tidak valid atau sudah tidak aktif.',
             'application_date.required' => 'Tanggal pengajuan wajib diisi.',
+            'application_date.date' => 'Format tanggal pengajuan tidak valid.',
             'principal_amount.required' => 'Nominal pinjaman wajib diisi.',
+            'principal_amount.numeric' => 'Nominal pinjaman harus berupa angka.',
             'principal_amount.min' => 'Nominal pinjaman harus lebih besar dari 0.',
             'tenor_months.required' => 'Tenor wajib diisi.',
+            'tenor_months.integer' => 'Tenor harus berupa bilangan bulat.',
             'tenor_months.min' => 'Tenor minimal 1 bulan.',
+            'tenor_months.max' => 'Tenor maksimal 600 bulan.',
             'due_day.required' => 'Tanggal jatuh tempo bulanan wajib diisi.',
             'due_day.between' => 'Tanggal jatuh tempo harus antara tanggal 1 sampai 28.',
+            'notes.max' => 'Catatan maksimal 5.000 karakter.',
         ];
     }
 }

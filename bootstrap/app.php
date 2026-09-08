@@ -11,9 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-		$middleware->alias([
-			'branch' => \App\Http\Middleware\BranchAccess::class,
-		]);
+        $middleware->alias([
+            'branch' => \App\Http\Middleware\BranchAccess::class,
+            'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureUserIsActive::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
