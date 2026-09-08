@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? config('app.name', 'Koperasi') }}</title>
+    <title>{{ isset($title) ? $title.' | ' : '' }}{{ $appSettings->abbreviation ?: $appSettings->system_name }}</title>
+    @if($appSettings->icon_url)
+        <link rel="icon" href="{{ $appSettings->icon_url }}">
+    @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
@@ -23,9 +26,9 @@
         </main>
 
         <footer class="app-footer">
-            <span>&copy; {{ date('Y') }} {{ config('app.name', 'Koperasi') }}</span>
+            <span>{{ $appSettings->copyright ?: '© '.date('Y').' '.$appSettings->abbreviation }}</span>
             <span class="footer-separator">•</span>
-            <span>Cooperative Management System</span>
+            <span>{{ $appSettings->system_name }}</span>
         </footer>
     </div>
 </div>

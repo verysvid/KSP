@@ -300,3 +300,4 @@ require __DIR__.'/member-saving-reports.php';
 require __DIR__.'/member-loan-reports.php';
 require __DIR__.'/bulk-transactions.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/application-settings.php';
