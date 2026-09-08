@@ -7,13 +7,15 @@ use App\Http\Requests\UpdateMemberRequest;
 use App\Models\Branch;
 use App\Models\Member;
 use App\Models\MemberType;
+use App\Models\SavingType;
 use App\Services\AuditLogService;
 use App\Services\BranchContext;
 use App\Services\MemberActivationService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -48,39 +50,15 @@ class MemberController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = trim(
-                (string) $request->search
-            );
+            $search = trim((string) $request->search);
 
-            $query->where(
-                function ($q) use ($search) {
-                    $q->where(
-                        'member_number',
-                        'like',
-                        "%{$search}%"
-                    )
-                    ->orWhere(
-                        'name',
-                        'like',
-                        "%{$search}%"
-                    )
-                    ->orWhere(
-                        'nik',
-                        'like',
-                        "%{$search}%"
-                    )
-                    ->orWhere(
-                        'phone',
-                        'like',
-                        "%{$search}%"
-                    )
-                    ->orWhere(
-                        'email',
-                        'like',
-                        "%{$search}%"
-                    );
-                }
-            );
+            $query->where(function ($q) use ($search) {
+                $q->where('member_number', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('nik', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
         }
 
         if ($request->filled('status')) {
@@ -104,14 +82,10 @@ class MemberController extends Controller
             );
         }
 
-        $totalMembers = (clone $statsQuery)
-            ->count();
+        $totalMembers = (clone $statsQuery)->count();
 
         $activeMembers = (clone $statsQuery)
-            ->where(
-                'member_status',
-                'ACTIVE'
-            )
+            ->where('member_status', 'ACTIVE')
             ->count();
 
         $newMembers = (clone $statsQuery)
@@ -119,10 +93,7 @@ class MemberController extends Controller
             ->count();
 
         $inactiveMembers = (clone $statsQuery)
-            ->where(
-                'member_status',
-                'INACTIVE'
-            )
+            ->where('member_status', 'INACTIVE')
             ->count();
 
         return view(
@@ -174,13 +145,17 @@ class MemberController extends Controller
             ->orderBy('name')
             ->get();
 
+        [$savingPokok, $savingWajib] = $this->getRegistrationSavingTypes();
+
         return view(
             'members.create',
             compact(
                 'branches',
                 'memberTypes',
                 'isSuperAdmin',
-                'currentBranch'
+                'currentBranch',
+                'savingPokok',
+                'savingWajib'
             )
         );
     }
@@ -193,10 +168,13 @@ class MemberController extends Controller
         $this->authorize('create', Member::class);
 
         $data = $request->validated();
+        unset($data['agreement']);
 
         if ($this->branchContext->isSuperAdmin()) {
             if (empty($data['branch_id'])) {
-                throw ValidationException::withMessages(['branch_id' => 'Cabang wajib dipilih.']);
+                throw ValidationException::withMessages([
+                    'branch_id' => 'Cabang wajib dipilih.',
+                ]);
             }
 
             $branchExists = Branch::query()
@@ -205,20 +183,38 @@ class MemberController extends Controller
                 ->exists();
 
             if (! $branchExists) {
-                throw ValidationException::withMessages(['branch_id' => 'Cabang tidak aktif atau tidak valid.']);
+                throw ValidationException::withMessages([
+                    'branch_id' => 'Cabang tidak aktif atau tidak valid.',
+                ]);
             }
         } else {
-            $data['branch_id'] = $this->branchContext->getCurrentBranchId();
+            $data['branch_id'] = $this->branchContext
+                ->getCurrentBranchId();
 
             if (! $data['branch_id']) {
-                abort(403, 'User belum memiliki cabang.');
+                abort(
+                    403,
+                    'User belum memiliki cabang.'
+                );
             }
         }
 
-        $member = DB::transaction(function () use ($data, $activationService) {
+        if ($request->hasFile('id_card_image')) {
+            $data['id_card_image'] = $request
+                ->file('id_card_image')
+                ->store('members/ktp', 'public');
+        }
+
+        $member = DB::transaction(function () use (
+            $data,
+            $activationService
+        ) {
             $data['member_status'] = 'NEW';
+
             $member = Member::create($data);
+
             $activationService->activate($member);
+
             return $member->fresh();
         });
 
@@ -228,14 +224,26 @@ class MemberController extends Controller
             description: 'Menambahkan dan mengaktifkan anggota ' . $member->member_number,
             oldValues: [],
             newValues: $member->only([
-                'branch_id', 'member_type_id', 'member_number', 'name', 'email',
-                'amount_saving', 'join_date', 'member_status', 'user_id',
+                'branch_id',
+                'member_type_id',
+                'member_number',
+                'name',
+                'email',
+                'work_unit',
+                'id_card_image',
+                'amount_saving',
+                'join_date',
+                'member_status',
+                'user_id',
             ])
         );
 
         return redirect()
             ->route('members.index')
-            ->with('success', 'Anggota berhasil dibuat dan diaktifkan. Akun login telah dibuat dengan password awal password123.');
+            ->with(
+                'success',
+                'Anggota berhasil dibuat dan diaktifkan. Akun login telah dibuat dengan password awal password123.'
+            );
     }
 
     public function activate(
@@ -252,7 +260,11 @@ class MemberController extends Controller
             ]);
         }
 
-        $oldValues = $member->only(['member_status', 'user_id']);
+        $oldValues = $member->only([
+            'member_status',
+            'user_id',
+        ]);
+
         $activationService->activate($member);
         $member->refresh();
 
@@ -261,25 +273,28 @@ class MemberController extends Controller
             model: $member,
             description: 'Mengaktifkan anggota ' . $member->member_number . ' dan membuat akun login.',
             oldValues: $oldValues,
-            newValues: $member->only(['member_status', 'user_id'])
+            newValues: $member->only([
+                'member_status',
+                'user_id',
+            ])
         );
 
         return redirect()
             ->route('members.index')
-            ->with('success', 'Anggota berhasil diaktifkan. Akun login telah dibuat dengan password awal password123.');
+            ->with(
+                'success',
+                'Anggota berhasil diaktifkan. Akun login telah dibuat dengan password awal password123.'
+            );
     }
 
-    public function show(
-        Member $member
-    ): View {
+    public function show(Member $member): View
+    {
         $this->authorize(
             'view',
             $member
         );
 
-        $this->ensureMemberAccess(
-            $member
-        );
+        $this->ensureMemberAccess($member);
 
         $member->load([
             'branch',
@@ -293,17 +308,14 @@ class MemberController extends Controller
         );
     }
 
-    public function edit(
-        Member $member
-    ): View {
+    public function edit(Member $member): View
+    {
         $this->authorize(
             'update',
             $member
         );
 
-        $this->ensureMemberAccess(
-            $member
-        );
+        $this->ensureMemberAccess($member);
 
         $member->load([
             'branch',
@@ -341,6 +353,8 @@ class MemberController extends Controller
             ->orderBy('name')
             ->get();
 
+        [$savingPokok, $savingWajib] = $this->getRegistrationSavingTypes();
+
         return view(
             'members.edit',
             compact(
@@ -348,201 +362,212 @@ class MemberController extends Controller
                 'branches',
                 'memberTypes',
                 'isSuperAdmin',
-                'currentBranch'
+                'currentBranch',
+                'savingPokok',
+                'savingWajib'
             )
         );
     }
 
-	public function update(
-		UpdateMemberRequest $request,
-		Member $member,
-		AuditLogService $auditLog
-	): RedirectResponse {
-		$this->authorize(
-			'update',
-			$member
-		);
+    public function update(
+        UpdateMemberRequest $request,
+        Member $member,
+        AuditLogService $auditLog
+    ): RedirectResponse {
+        $this->authorize(
+            'update',
+            $member
+        );
 
-		$this->ensureMemberAccess(
-			$member
-		);
+        $this->ensureMemberAccess($member);
 
-		$data = $request->validated();
+        $data = $request->validated();
 
-		if ($this->branchContext->isSuperAdmin()) {
-			if (empty($data['branch_id'])) {
-				throw ValidationException::withMessages([
-					'branch_id' => 'Cabang wajib dipilih.',
-				]);
-			}
+        if ($this->branchContext->isSuperAdmin()) {
+            if (empty($data['branch_id'])) {
+                throw ValidationException::withMessages([
+                    'branch_id' => 'Cabang wajib dipilih.',
+                ]);
+            }
 
-			$branchExists = Branch::query()
-				->whereKey($data['branch_id'])
-				->where('is_active', true)
-				->exists();
+            $branchExists = Branch::query()
+                ->whereKey($data['branch_id'])
+                ->where('is_active', true)
+                ->exists();
 
-			if (! $branchExists) {
-				throw ValidationException::withMessages([
-					'branch_id' => 'Cabang tidak aktif atau tidak valid.',
-				]);
-			}
-		} else {
-			$data['branch_id'] = $this
-				->branchContext
-				->getCurrentBranchId();
+            if (! $branchExists) {
+                throw ValidationException::withMessages([
+                    'branch_id' => 'Cabang tidak aktif atau tidak valid.',
+                ]);
+            }
+        } else {
+            $data['branch_id'] = $this
+                ->branchContext
+                ->getCurrentBranchId();
 
-			if (! $data['branch_id']) {
-				abort(
-					403,
-					'User belum memiliki cabang.'
-				);
-			}
-		}
+            if (! $data['branch_id']) {
+                abort(
+                    403,
+                    'User belum memiliki cabang.'
+                );
+            }
+        }
 
-		$fields = [
-			'branch_id',
-			'member_type_id',
-			'name',
-			'nik',
-			'gender',
-			'birth_place',
-			'birth_date',
-			'address',
-			'phone',
-			'email',
-			'occupation',
-			'amount_saving',
-			'join_date',
-			'member_status',
-			'notes',
-		];
+        $oldIdCardImage = $member->id_card_image;
 
-		$oldValues = $member->only(
-			$fields
-		);
+        if ($request->hasFile('id_card_image')) {
+            $data['id_card_image'] = $request
+                ->file('id_card_image')
+                ->store('members/ktp', 'public');
+        } else {
+            unset($data['id_card_image']);
+        }
 
-		/*
-		 * ---------------------------------------------------------
-		 * Update Member + sinkronisasi User dalam satu transaksi
-		 * ---------------------------------------------------------
-		 */
-		DB::transaction(function () use (
-			$member,
-			$data
-		) {
-			$member->update($data);
+        $fields = [
+            'branch_id',
+            'member_type_id',
+            'name',
+            'nik',
+            'gender',
+            'birth_place',
+            'birth_date',
+            'address',
+            'phone',
+            'email',
+            'occupation',
+            'work_unit',
+            'id_card_image',
+            'amount_saving',
+            'join_date',
+            'member_status',
+            'notes',
+        ];
 
-			$member->refresh();
+        $oldValues = $member->only($fields);
 
-			/*
-			 * Jika anggota sudah memiliki akun login,
-			 * sinkronkan status akun user.
-			 */
-			if ($member->user_id) {
-				if ($member->member_status === 'INACTIVE') {
-					$member->user()
-						->update([
-							'is_active' => false,
-						]);
-				}
+        DB::transaction(function () use (
+            $member,
+            $data
+        ) {
+            $member->update($data);
 
-				if ($member->member_status === 'ACTIVE') {
-					$member->user()
-						->update([
-							'is_active' => true,
-						]);
-				}
-			}
-		});
+            $member->refresh();
 
-		$member->refresh();
+            if ($member->user_id) {
+                if ($member->member_status === 'INACTIVE') {
+                    $member->user()
+                        ->update([
+                            'is_active' => false,
+                        ]);
+                }
 
-		$auditLog->log(
-			action: 'UPDATE',
-			model: $member,
-			description:
-				'Mengubah data anggota '
-				. $member->member_number,
-			oldValues: $oldValues,
-			newValues: $member->only(
-				$fields
-			)
-		);
+                if ($member->member_status === 'ACTIVE') {
+                    $member->user()
+                        ->update([
+                            'is_active' => true,
+                        ]);
+                }
+            }
+        });
 
-		return redirect()
-			->route(
-				'members.show',
-				$member
-			)
-			->with(
-				'success',
-				'Data anggota berhasil diperbarui.'
-			);
-	}
+        if (
+            isset($data['id_card_image'])
+            && $oldIdCardImage
+            && $oldIdCardImage !== $data['id_card_image']
+        ) {
+            Storage::disk('public')->delete($oldIdCardImage);
+        }
 
-	public function destroy(
-		Member $member,
-		AuditLogService $auditLog
-	): RedirectResponse {
-		$this->authorize(
-			'delete',
-			$member
-		);
+        $member->refresh();
 
-		$this->ensureMemberAccess(
-			$member
-		);
+        $auditLog->log(
+            action: 'UPDATE',
+            model: $member,
+            description: 'Mengubah data anggota ' . $member->member_number,
+            oldValues: $oldValues,
+            newValues: $member->only($fields)
+        );
 
-		$oldValues = $member->only([
-			'member_status',
-		]);
+        return redirect()
+            ->route(
+                'members.show',
+                $member
+            )
+            ->with(
+                'success',
+                'Data anggota berhasil diperbarui.'
+            );
+    }
 
-		/*
-		 * ---------------------------------------------------------
-		 * Nonaktifkan Member + akun User sekaligus
-		 * ---------------------------------------------------------
-		 */
-		DB::transaction(function () use ($member) {
-			$member->update([
-				'member_status' => 'INACTIVE',
-			]);
+    public function destroy(
+        Member $member,
+        AuditLogService $auditLog
+    ): RedirectResponse {
+        $this->authorize(
+            'delete',
+            $member
+        );
 
-			/*
-			 * Jika anggota sudah memiliki akun login,
-			 * akun tersebut ikut dinonaktifkan.
-			 */
-			if ($member->user_id) {
-				$member->user()
-					->update([
-						'is_active' => false,
-					]);
-			}
-		});
+        $this->ensureMemberAccess($member);
 
-		$member->refresh();
+        $oldValues = $member->only([
+            'member_status',
+        ]);
 
-		$auditLog->log(
-			action: 'INACTIVE',
-			model: $member,
-			description:
-				'Menonaktifkan anggota '
-				. $member->member_number
-				. ' beserta akun login.',
-			oldValues: $oldValues,
-			newValues: [
-				'member_status' =>
-					$member->member_status,
-				'user_is_active' => false,
-			]
-		);
+        DB::transaction(function () use ($member) {
+            $member->update([
+                'member_status' => 'INACTIVE',
+            ]);
 
-		return redirect()
-			->route('members.index')
-			->with(
-				'success',
-				'Anggota dan akun login berhasil dinonaktifkan.'
-			);
-	}
+            if ($member->user_id) {
+                $member->user()
+                    ->update([
+                        'is_active' => false,
+                    ]);
+            }
+        });
+
+        $member->refresh();
+
+        $auditLog->log(
+            action: 'INACTIVE',
+            model: $member,
+            description:
+                'Menonaktifkan anggota '
+                . $member->member_number
+                . ' beserta akun login.',
+            oldValues: $oldValues,
+            newValues: [
+                'member_status' => $member->member_status,
+                'user_is_active' => false,
+            ]
+        );
+
+        return redirect()
+            ->route('members.index')
+            ->with(
+                'success',
+                'Anggota dan akun login berhasil dinonaktifkan.'
+            );
+    }
+
+    private function getRegistrationSavingTypes(): array
+    {
+        $savingPokok = SavingType::query()
+            ->where('is_active', true)
+            ->where('code', 'POKOK')
+            ->first();
+
+        $savingWajib = SavingType::query()
+            ->where('is_active', true)
+            ->where('code', 'WAJIB')
+            ->first();
+
+        return [
+            $savingPokok,
+            $savingWajib,
+        ];
+    }
 
     private function ensureMemberAccess(
         Member $member
@@ -556,8 +581,7 @@ class MemberController extends Controller
 
         abort_unless(
             $branchId !== null
-            && (int) $member->branch_id
-                === (int) $branchId,
+            && (int) $member->branch_id === (int) $branchId,
             403
         );
     }

@@ -7,10 +7,10 @@ use Illuminate\Validation\Rule;
 
 class StoreMemberRequest extends FormRequest
 {
-	public function authorize(): bool
-	{
-		return $this->user()?->can('member.create') === true;
-	}
+    public function authorize(): bool
+    {
+        return $this->user()?->can('member.create') === true;
+    }
 
     public function rules(): array
     {
@@ -24,12 +24,41 @@ class StoreMemberRequest extends FormRequest
             'birth_date' => ['nullable', 'date'],
             'address' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:255', 'unique:members,email', 'unique:users,email'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:members,email',
+                'unique:users,email',
+            ],
             'occupation' => ['nullable', 'string', 'max:255'],
-            'amount_saving' => ['nullable', 'numeric', 'min:0', 'max:9999999999999.99'],
+            'work_unit' => ['nullable', 'string', 'max:255'],
+            'amount_saving' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999999999.99',
+            ],
             'join_date' => ['required', 'date'],
             'member_status' => ['nullable', Rule::in(['NEW', 'ACTIVE', 'INACTIVE'])],
+            'id_card_image' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+            ],
+            'agreement' => ['accepted'],
             'notes' => ['nullable', 'string'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'id_card_image.image' => 'File KTP harus berupa gambar.',
+            'id_card_image.mimes' => 'Format KTP harus JPG, JPEG, PNG, atau WEBP.',
+            'id_card_image.max' => 'Ukuran file KTP maksimal 2 MB.',
+            'agreement.accepted' => 'Konfirmasi pernyataan dan kesediaan anggota wajib dicentang.',
         ];
     }
 }

@@ -36,7 +36,12 @@
 				</a>
 			</div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg">
+            <div
+                class="w-full mt-6 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg
+                    {{ $attributes->has('wide')
+                        ? 'sm:max-w-6xl xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-6'
+                        : 'sm:max-w-md px-6 py-4' }}"
+            >
                 {{ $slot }}
             </div>
         </div>

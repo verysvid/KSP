@@ -24,10 +24,12 @@ class Member extends Model
         'phone',
         'email',
         'occupation',
+        'work_unit',
         'amount_saving',
         'join_date',
         'member_status',
         'photo',
+        'id_card_image',
         'notes',
     ];
 
@@ -52,17 +54,6 @@ class Member extends Model
 
             $prefix = strtoupper(trim($branch->code));
 
-            /*
-             * Cari nomor anggota terbesar berdasarkan angka
-             * setelah kode cabang.
-             *
-             * Contoh:
-             * PST-000001
-             * PST-000003
-             * PST-000010
-             *
-             * Maka berikutnya = PST-000011
-             */
             $lastMember = Member::withoutGlobalScopes()
                 ->where(
                     'member_number',
@@ -85,11 +76,6 @@ class Member extends Model
                 $next = $lastNumber + 1;
             }
 
-            /*
-             * Safety check tambahan.
-             * Kalau nomor ternyata sudah pernah dipakai,
-             * lompat ke nomor berikutnya.
-             */
             do {
                 $memberNumber = sprintf(
                     '%s-%06d',
