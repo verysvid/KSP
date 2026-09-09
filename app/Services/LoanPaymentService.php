@@ -30,6 +30,8 @@ class LoanPaymentService
             ]);
         }
 
+        \App\Services\LoanTopUpGuardService::assertLoanPaymentAllowed($loan);
+
         if ($installment->loan_id !== $loan->id) {
             throw ValidationException::withMessages([
                 'installment' => 'Angsuran tidak termasuk dalam pinjaman ini.',
@@ -59,6 +61,16 @@ class LoanPaymentService
             ]);
         }
 
+        $hasLockedTopUp = Loan::query()
+            ->where('topup_from_loan_id', $loan->id)
+            ->whereIn('status', [Loan::STATUS_SUBMITTED, Loan::STATUS_APPROVED])
+            ->exists();
+
+        if ($hasLockedTopUp) {
+            throw ValidationException::withMessages([
+                'loan' => 'Pinjaman sedang dalam proses TopUp (Submitted/Approved). Pembayaran angsuran lama dikunci sampai TopUp diproses atau ditolak.',
+            ]);
+        }
         $cashAccount = Account::query()
             ->whereKey($data['cash_account_id'])
             ->where('is_cash_bank', true)

@@ -123,6 +123,8 @@ class LoanPaymentController extends Controller
             'Hanya pinjaman Active yang dapat dibayar.'
         );
 
+        \App\Services\LoanTopUpGuardService::assertLoanPaymentAllowed($loan);
+
         abort_unless(
             $installment->loan_id === $loan->id,
             404

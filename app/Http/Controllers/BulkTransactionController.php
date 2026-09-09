@@ -31,6 +31,11 @@ class BulkTransactionController extends Controller
         $branch = $branchId ? Branch::find($branchId) : null;
         $report = $branchId ? $this->previewService->generate($branchId, $month, $year) : null;
 
+        $blockingTopUps = $branchId
+            ? \App\Services\LoanTopUpGuardService::blockingTopUpsForBranch($branchId)
+            : collect();
+        $hasBlockingTopUp = $blockingTopUps->isNotEmpty();
+
         $periodDate = Carbon::create($year, $month, 1);
         $defaultDate = $periodDate->isSameMonth(now()) ? now() : $periodDate->copy()->endOfMonth();
 
@@ -45,6 +50,8 @@ class BulkTransactionController extends Controller
             'isSuperAdmin' => $this->branchContext->isSuperAdmin(),
             'currentBranch' => $this->branchContext->getCurrentBranch(),
             'report' => $report, 'batches' => $batches,
+            'blockingTopUps' => $blockingTopUps,
+            'hasBlockingTopUp' => $hasBlockingTopUp,
             'defaultTransactionDate' => old('transaction_date', $defaultDate->format('Y-m-d')),
         ]);
     }
@@ -52,6 +59,7 @@ class BulkTransactionController extends Controller
     public function store(ProcessBulkTransactionRequest $request): RedirectResponse
     {
         $branchId = $this->resolveBranchId($request, true);
+        \App\Services\LoanTopUpGuardService::assertBulkAllowedForBranch($branchId);
         $data = $request->validated();
         $batch = $this->bulkTransactionService->process(
             $branchId, (int) $data['month'], (int) $data['year'],

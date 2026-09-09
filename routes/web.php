@@ -13,6 +13,7 @@ use App\Http\Controllers\SavingTypeController;
 use App\Http\Controllers\SavingTransactionController;
 use App\Http\Controllers\LoanTypeController;
 use App\Http\Controllers\LoanController;
+use App\Http\Controllers\TopUpLoanController;
 use App\Http\Controllers\LoanDisbursementController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\LoanPaymentController;
@@ -211,6 +212,14 @@ Route::middleware(['auth', 'branch'])->group(function () {
     Route::get('loans', [LoanController::class, 'index'])->middleware('can:loan.view')->name('loans.index');
     Route::get('loans/create', [LoanController::class, 'create'])->middleware('can:loan.create')->name('loans.create');
     Route::post('loans', [LoanController::class, 'store'])->middleware('can:loan.create')->name('loans.store');
+    Route::get('loans/{loan}/topup', [TopUpLoanController::class, 'create'])
+        ->middleware('can:loan.create')->name('loans.topup.create');
+    Route::post('loans/{loan}/topup', [TopUpLoanController::class, 'store'])
+        ->middleware('can:loan.create')->name('loans.topup.store');
+    Route::get('loans/{loan}/topup/edit', [TopUpLoanController::class, 'edit'])
+        ->middleware('can:loan.edit')->name('loans.topup.edit');
+    Route::put('loans/{loan}/topup', [TopUpLoanController::class, 'update'])
+        ->middleware('can:loan.edit')->name('loans.topup.update');
     Route::get('loans/{loan}', [LoanController::class, 'show'])->middleware('can:loan.view')->name('loans.show');
     Route::get('loans/{loan}/simulation', [LoanController::class, 'simulation'])->middleware('can:loan.view')->name('loans.simulation');
     Route::get('loans/{loan}/edit', [LoanController::class, 'edit'])->middleware('can:loan.edit')->name('loans.edit');

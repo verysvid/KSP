@@ -121,13 +121,16 @@ class LoanController extends Controller
         abort_unless($request->user()?->can('loan.view'), 403);
         $this->ensureLoanAccessible($request, $loan);
         $loan->load(['branch','member','loanType','submittedBy','approvedBy','rejectedBy','disbursedBy','createdBy','updatedBy','disbursement.cashAccount','disbursement.journalEntry','installments','payments.installment','payments.cashAccount','payments.journalEntry']);
-        return view('loans.show', compact('loan'));
+        $hasBlockingTopUp = \App\Services\LoanTopUpGuardService::hasBlockingTopUpForSource((int) $loan->id);
+
+        return view('loans.show', compact('loan', 'hasBlockingTopUp'));
     }
 
     public function edit(Request $request, Loan $loan): View
     {
         abort_unless($request->user()?->can('loan.edit'), 403);
         $this->ensureLoanAccessible($request, $loan);
+        abort_if($loan->is_topup, 422, 'Draft TopUp hanya dapat diubah melalui form TopUp.');
         abort_unless($loan->status === Loan::STATUS_DRAFT, 422, 'Hanya pinjaman berstatus Draft yang dapat diubah.');
         $currentMember = $this->resolveMemberForAnggota($request, false);
         $loanTypes = LoanType::query()->where('is_active', true)->orderBy('name')->get();
@@ -141,6 +144,7 @@ class LoanController extends Controller
     {
         abort_unless($request->user()?->can('loan.edit'), 403);
         $this->ensureLoanAccessible($request, $loan);
+        abort_if($loan->is_topup, 422, 'Draft TopUp hanya dapat diubah melalui form TopUp.');
         abort_unless($loan->status === Loan::STATUS_DRAFT, 422, 'Hanya pinjaman berstatus Draft yang dapat diubah.');
         $validated = $request->validated();
         $member = $this->resolveMemberForAnggota($request, false);
@@ -178,6 +182,25 @@ class LoanController extends Controller
     {
         abort_unless($request->user()?->can('loan.submit'),403); $this->ensureLoanAccessible($request,$loan);
         abort_unless($loan->status===Loan::STATUS_DRAFT,422,'Hanya pinjaman berstatus Draft yang dapat diajukan.');
+        // Sinkronisasi saldo pinjaman lama sebelum TopUp disubmit.
+        // Setelah SUBMITTED, pembayaran pinjaman lama diblokir sampai proses TopUp selesai.
+        if ($loan->is_topup) {
+            $sourceLoan = Loan::query()->findOrFail($loan->topup_from_loan_id);
+            abort_unless($sourceLoan->status === Loan::STATUS_ACTIVE, 422, 'Pinjaman sumber TopUp sudah tidak aktif.');
+            $sourceLoan->loadMissing('loanType');
+
+            $newPrincipal = round((float) $loan->topup_amount + (float) $sourceLoan->outstanding_principal, 2);
+            $this->validateAgainstLoanType($sourceLoan->loanType, $newPrincipal, (int) $loan->tenor_months);
+
+            $loan->update([
+                'principal_amount' => $newPrincipal,
+                'total_principal' => $newPrincipal,
+                'outstanding_principal' => $newPrincipal,
+                'old_loan_no' => $sourceLoan->loan_no,
+                'notes' => app(\App\Services\LoanTopUpService::class)->buildNotes($sourceLoan),
+                'updated_by' => $request->user()->id,
+            ]);
+        }
         $old=$loan->toArray(); $loan->update(['status'=>Loan::STATUS_SUBMITTED,'submitted_at'=>now(),'submitted_by'=>$request->user()->id,'updated_by'=>$request->user()->id]);
         $this->auditLogService->log('UPDATE',$loan,"Submit pengajuan pinjaman {$loan->loan_no}",$old,$loan->fresh()->toArray());
         return redirect()->route('loans.show',$loan)->with('success','Pengajuan pinjaman berhasil disubmit.');

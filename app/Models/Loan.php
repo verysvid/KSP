@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Models\Concerns\BelongsToBranch;
 
 class Loan extends Model
 {
@@ -51,6 +51,10 @@ class Loan extends Model
         'outstanding_principal',
         'outstanding_interest',
         'notes',
+        'is_topup',
+        'topup_from_loan_id',
+        'old_loan_no',
+        'topup_amount',
         'created_by',
         'updated_by',
     ];
@@ -72,6 +76,8 @@ class Loan extends Model
             'total_installment' => 'decimal:2',
             'outstanding_principal' => 'decimal:2',
             'outstanding_interest' => 'decimal:2',
+            'is_topup' => 'boolean',
+            'topup_amount' => 'decimal:2',
         ];
     }
 
@@ -84,6 +90,16 @@ class Loan extends Model
     public function disbursedBy(): BelongsTo { return $this->belongsTo(User::class, 'disbursed_by'); }
     public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function updatedBy(): BelongsTo { return $this->belongsTo(User::class, 'updated_by'); }
+
+    public function topUpFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'topup_from_loan_id');
+    }
+
+    public function topUps(): HasMany
+    {
+        return $this->hasMany(self::class, 'topup_from_loan_id');
+    }
 
     public function disbursement(): HasOne
     {
@@ -108,4 +124,5 @@ class Loan extends Model
     public function isApproved(): bool { return $this->status === self::STATUS_APPROVED; }
     public function isActive(): bool { return $this->status === self::STATUS_ACTIVE; }
     public function isPaidOff(): bool { return $this->status === self::STATUS_PAID_OFF; }
+    public function isTopUp(): bool { return (bool) $this->is_topup; }
 }

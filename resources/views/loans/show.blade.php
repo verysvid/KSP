@@ -11,6 +11,8 @@
                 Kembali
             </a>
 
+            @include('loans.partials.topup-action')
+
 			@if($loan->status === 'DRAFT')
 				<a href="{{ route('loans.simulation', $loan) }}"
 				   class="btn btn-secondary">
@@ -18,7 +20,7 @@
 				</a>
 			@endif
 
-            @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.edit'))
+            @if($loan->status === 'DRAFT' && !$loan->is_topup && auth()->user()?->can('loan.edit'))
                 <a href="{{ route('loans.edit', $loan) }}"
                    class="btn btn-secondary">
                     Edit Pengajuan
@@ -75,6 +77,8 @@
 			@endif
         </x-slot>
     </x-page-header>
+
+    @include('loans.partials.topup-info')
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
@@ -388,6 +392,19 @@
 				title="Jadwal Angsuran"
 				description="Jadwal angsuran terbentuk setelah pencairan pinjaman.">
 
+                {{-- TOPUP-PAYMENT-GUARD-WARNING --}}
+                @if($loan->status === 'ACTIVE' && ($hasBlockingTopUp ?? false))
+                    <div class="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3
+                                text-sm text-amber-800
+                                dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                        <div class="font-bold">Pembayaran angsuran sementara dinonaktifkan.</div>
+                        <div class="mt-1">
+                            Ada Pengajuan TopUp yang sedang berstatus SUBMITTED/APPROVED.
+                            Selesaikan proses TopUp sampai dengan Pencairan atau lakukan Reject terlebih dahulu.
+                        </div>
+                    </div>
+                @endif
+
 				<div class="hidden md:block">
 					<div class="table-wrapper">
 						<table class="data-table">
@@ -439,6 +456,7 @@
 										<div class="flex justify-end">
 											@if(
 												$loan->status === 'ACTIVE'
+												&& !($hasBlockingTopUp ?? false)
 												&& $installment->status !== 'PAID'
 												&& auth()->user()?->can('loan.pay')
 											)
@@ -502,6 +520,7 @@
 								</div>
 								@if(
 									$loan->status === 'ACTIVE'
+									&& !($hasBlockingTopUp ?? false)
 									&& $installment->status !== 'PAID'
 									&& auth()->user()?->can('loan.pay')
 								)

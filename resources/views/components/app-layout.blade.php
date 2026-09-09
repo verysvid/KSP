@@ -31,9 +31,9 @@
         </main>
 
         <footer class="app-footer">
-            <span>&copy; {{ date('Y') }} {{ config('app.name', 'Koperasi') }}</span>
+            <span>&copy; {{ date('Y') }} {{ $appSettings->copyright  ?? 'KSP' }}</span>
             <span class="footer-separator">•</span>
-            <span>Koperasi Simpan Pinjam</span>
+            <span>{{ ($appSettings->abbreviation ?? 'KSP') . ' - ' . ($appSettings->title_2 ?? 'Koperasi Simpan Pinjam') }}</span>
         </footer>
     </div>
 </div>

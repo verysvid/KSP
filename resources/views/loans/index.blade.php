@@ -193,12 +193,14 @@
 										</a>
 									@endif
 
-                                    @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.edit'))
-                                        <a href="{{ route('loans.edit', $loan) }}"
-                                           class="btn btn-secondary">
-                                            Edit
-                                        </a>
-                                    @endif
+									@if($loan->status === \App\Models\Loan::STATUS_DRAFT && auth()->user()?->can('loan.edit'))
+										<a href="{{ $loan->is_topup
+											? route('loans.topup.edit', $loan)
+											: route('loans.edit', $loan) }}"
+										   class="btn btn-secondary">
+											Edit
+										</a>
+									@endif
 
                                     @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.submit'))
                                         <form
@@ -286,12 +288,14 @@
 							</a>
 						@endif
 
-                        @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.edit'))
-                            <a href="{{ route('loans.edit', $loan) }}"
-                               class="btn btn-primary">
-                                Edit
-                            </a>
-                        @endif
+						@if($loan->status === \App\Models\Loan::STATUS_DRAFT && auth()->user()?->can('loan.edit'))
+							<a href="{{ $loan->is_topup
+								? route('loans.topup.edit', $loan)
+								: route('loans.edit', $loan) }}"
+							   class="btn btn-secondary">
+								Edit
+							</a>
+						@endif
                     </div>
 
                     @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.submit'))

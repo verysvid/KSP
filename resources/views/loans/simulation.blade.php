@@ -3,7 +3,14 @@
     <x-page-header title="Simulasi Angsuran" description="{{ $loan->loan_no }} - {{ $loan->member->name ?? '-' }}">
         <x-slot name="actions">
             <a href="{{ route('loans.show', $loan) }}" class="btn btn-secondary">Kembali ke Detail</a>
-            @can('loan.edit')<a href="{{ route('loans.edit', $loan) }}" class="btn btn-secondary">Edit Pengajuan</a>@endcan
+			@if($loan->status === \App\Models\Loan::STATUS_DRAFT && auth()->user()?->can('loan.edit'))
+				<a href="{{ $loan->is_topup
+					? route('loans.topup.edit', $loan)
+					: route('loans.edit', $loan) }}"
+				   class="btn btn-secondary">
+					{{ $loan->is_topup ? 'Edit TopUp' : 'Edit Pengajuan' }}
+				</a>
+			@endif
             @can('loan.submit')
                 <form method="POST" action="{{ route('loans.submit', $loan) }}" class="loan-submit-form" data-loan-no="{{ $loan->loan_no }}">@csrf @method('PATCH')<button type="submit" class="btn btn-primary">Submit Pengajuan</button></form>
             @endcan

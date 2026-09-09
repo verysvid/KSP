@@ -33,6 +33,30 @@
                     <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Periode: {{ \Carbon\Carbon::create($year,$month,1)->translatedFormat('F Y') }} · {{ $report['memberCount'] }} anggota · {{ $report['selectableCount'] }} dapat diproses</div>
                 </div>
 
+                {{-- TOPUP-BULK-GUARD-WARNING --}}
+                @if($hasBlockingTopUp ?? false)
+                    <div class="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-4
+                                text-sm text-amber-800
+                                dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                        <div class="font-bold">Transaksi Bulk sementara tidak dapat diproses.</div>
+                        <div class="mt-1">
+                            Ada Pengajuan TopUp yang belum selesai diproses.
+                            Selesaikan proses sampai dengan Pencairan atau lakukan Reject terlebih dahulu.
+                        </div>
+                        @if(($blockingTopUps ?? collect())->isNotEmpty())
+                            <div class="mt-3 space-y-1 border-t border-amber-300/70 pt-3 dark:border-amber-500/20">
+                                @foreach($blockingTopUps as $topUp)
+                                    <div>
+                                        <strong>{{ $topUp->loan_no }}</strong>
+                                        · {{ $topUp->member?->name ?? '-' }}
+                                        · <strong>{{ $topUp->status }}</strong>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('bulk-transactions.store') }}" id="bulk-form">
                     @csrf
                     <input type="hidden" name="month" value="{{ $month }}"><input type="hidden" name="year" value="{{ $year }}">
@@ -206,7 +230,16 @@
                                    min="{{ $report['periodStart']->format('Y-m-d') }}" max="{{ $report['periodEnd']->format('Y-m-d') }}" value="{{ $defaultTransactionDate }}">
                             @error('transaction_date')<p class="form-error">{{ $message }}</p>@enderror
                         </div>
-                        <button type="submit" class="btn btn-primary" @disabled($report['selectableCount'] === 0)>Submit</button>
+						<button type="submit"
+								class="{{ ($report['selectableCount'] === 0 || ($hasBlockingTopUp ?? false))
+									? 'btn bg-slate-300 text-slate-500 cursor-not-allowed hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400'
+									: 'btn btn-primary' }}"
+								@disabled($report['selectableCount'] === 0 || ($hasBlockingTopUp ?? false))
+								title="{{ ($hasBlockingTopUp ?? false)
+									? 'Ada Pengajuan TopUp yang belum selesai diproses.'
+									: '' }}">
+							Submit
+						</button>
                     </div>
                     @error('member_ids')<p class="form-error mt-2">{{ $message }}</p>@enderror
                 </form>
