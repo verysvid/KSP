@@ -13,9 +13,11 @@
                 </form>
             @endif
 
-            @can('update', $member)
-                <a href="{{ route('members.edit', $member) }}" class="btn btn-primary">Edit Anggota</a>
-            @endcan
+			@can('update', $member)
+				@if($member->member_status !== 'NEW')
+					<a href="{{ route('members.edit', $member) }}" class="btn btn-primary">Edit Anggota</a>
+				@endif
+			@endcan
         </x-slot>
     </x-page-header>
 

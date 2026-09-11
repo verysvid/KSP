@@ -230,7 +230,6 @@
                         Status <span class="text-red-500">*</span>
                     </label>
                     <select id="member_status" name="member_status" class="form-select" required>
-                        <option value="NEW" @selected(old('member_status', $member->member_status) === 'NEW')>NEW</option>
                         <option value="ACTIVE" @selected(old('member_status', $member->member_status) === 'ACTIVE')>Aktif</option>
                         <option value="INACTIVE" @selected(old('member_status', $member->member_status) === 'INACTIVE')>Tidak Aktif</option>
                     </select>

@@ -35,7 +35,7 @@
                 <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Tidak Aktif</option>
             </select>
             <div class="flex gap-2">
-                <button type="submit" class="btn btn-secondary">Cari</button>
+                <button type="submit" class="btn btn-primary">Cari</button>
                 <a href="{{ route('members.index') }}" class="btn btn-secondary">Reset</a>
             </div>
         </form>
@@ -78,9 +78,11 @@
                             <td>
                                 <div class="flex justify-end gap-2">
                                     <a href="{{ route('members.show', $member) }}" class="btn btn-secondary">Detail</a>
-                                    @can('update', $member)
-                                        <a href="{{ route('members.edit', $member) }}" class="btn btn-secondary">Edit</a>
-                                    @endcan
+									@can('update', $member)
+										@if($member->member_status !== 'NEW')
+											<a href="{{ route('members.edit', $member) }}" class="btn btn-secondary">Edit</a>
+										@endif
+									@endcan
                                     @can('delete', $member)
                                         @if($member->member_status === 'ACTIVE')
                                             <form method="POST" action="{{ route('members.destroy', $member) }}"
@@ -131,9 +133,11 @@
 
                     <div class="mt-5 flex flex-wrap gap-2">
                         <a href="{{ route('members.show', $member) }}" class="btn btn-secondary btn-sm">Detail</a>
-                        @can('update', $member)
-                            <a href="{{ route('members.edit', $member) }}" class="btn btn-secondary btn-sm">Edit</a>
-                        @endcan
+						@can('update', $member)
+							@if($member->member_status !== 'NEW')
+								<a href="{{ route('members.edit', $member) }}" class="btn btn-secondary btn-sm">Edit</a>
+							@endif
+						@endcan
 						@can('delete', $member)
 							@if($member->member_status === 'ACTIVE')
 								<form method="POST" action="{{ route('members.destroy', $member) }}"

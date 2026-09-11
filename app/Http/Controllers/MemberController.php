@@ -316,6 +316,7 @@ class MemberController extends Controller
         );
 
         $this->ensureMemberAccess($member);
+		$this->ensureMemberEditable($member);
 
         $member->load([
             'branch',
@@ -380,6 +381,7 @@ class MemberController extends Controller
         );
 
         $this->ensureMemberAccess($member);
+		$this->ensureMemberEditable($member);
 
         $data = $request->validated();
 
@@ -568,6 +570,16 @@ class MemberController extends Controller
             $savingWajib,
         ];
     }
+
+	private function ensureMemberEditable(
+		Member $member
+	): void {
+		abort_if(
+			$member->member_status === 'NEW',
+			403,
+			'Anggota dengan status NEW tidak dapat diedit sebelum diaktivasi.'
+		);
+	}
 
     private function ensureMemberAccess(
         Member $member
