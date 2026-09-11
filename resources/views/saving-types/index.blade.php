@@ -228,17 +228,33 @@
                         </span>
                     </div>
 
-                    <div class="mt-4 grid grid-cols-2 gap-2">
+                    <div class="mt-5 flex flex-wrap gap-2">
                         <a href="{{ route('saving-types.show', $savingType) }}"
-                           class="btn btn-secondary">
+                           class="btn btn-secondary btn-sm">
                             Detail
                         </a>
 
                         @can('update', $savingType)
                             <a href="{{ route('saving-types.edit', $savingType) }}"
-                               class="btn btn-primary">
+                               class="btn btn-secondary btn-sm">
                                 Edit
                             </a>
+
+                            <form
+                                method="POST"
+                                action="{{ route('saving-types.toggle-status', $savingType) }}"
+                                class="saving-type-status-form col-span-2"
+                                data-name="{{ $savingType->name }}"
+                                data-active="{{ $savingType->is_active ? '1' : '0' }}">
+                                @csrf
+                                @method('PATCH')
+
+                                <button
+                                    type="submit"
+                                    class="btn {{ $savingType->is_active ? 'btn-danger' : 'btn-primary' }} btn-sm">
+                                    {{ $savingType->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                </button>
+                            </form>
                         @endcan
 
                     </div>

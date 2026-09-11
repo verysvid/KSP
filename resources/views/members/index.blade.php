@@ -35,7 +35,7 @@
                 <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Tidak Aktif</option>
             </select>
             <div class="flex gap-2">
-                <button type="submit" class="btn btn-primary flex-1">Cari</button>
+                <button type="submit" class="btn btn-secondary">Cari</button>
                 <a href="{{ route('members.index') }}" class="btn btn-secondary">Reset</a>
             </div>
         </form>
@@ -124,16 +124,26 @@
                         @elseif($member->member_status === 'NEW' && auth()->user()->can('member.edit'))
                             <form method="POST" action="{{ route('members.activate', $member) }}" class="member-activation-form" data-member="{{ $member->member_number }} - {{ $member->name }}">
                                 @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-primary w-full">Aktivasi</button>
+                                <button type="submit" class="btn btn-primary btn-sm">Aktivasi</button>
                             </form>
                         @endif
                     </div>
 
-                    <div class="mt-3 grid grid-cols-2 gap-2">
-                        <a href="{{ route('members.show', $member) }}" class="btn btn-secondary">Detail</a>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <a href="{{ route('members.show', $member) }}" class="btn btn-secondary btn-sm">Detail</a>
                         @can('update', $member)
-                            <a href="{{ route('members.edit', $member) }}" class="btn btn-primary">Edit</a>
+                            <a href="{{ route('members.edit', $member) }}" class="btn btn-secondary btn-sm">Edit</a>
                         @endcan
+						@can('delete', $member)
+							@if($member->member_status === 'ACTIVE')
+								<form method="POST" action="{{ route('members.destroy', $member) }}"
+									  class="member-deactivate-form"
+									  data-member="{{ $member->member_number }} - {{ $member->name }}">
+									@csrf @method('DELETE')
+									<button type="submit" class="btn btn-danger btn-sm">Nonaktifkan</button>
+								</form>
+							@endif
+						@endcan
                     </div>
                 </div>
             @empty
