@@ -10,6 +10,7 @@ class LoanInstallment extends Model
 {
     protected $fillable = [
         'loan_id',
+        'early_repayment_id',
         'installment_no',
         'due_date',
         'opening_principal',
@@ -51,6 +52,12 @@ class LoanInstallment extends Model
     public function loan(): BelongsTo
     {
         return $this->belongsTo(Loan::class);
+    }
+
+    // EARLY-REPAYMENT-INSTALLMENT-RELATION
+    public function earlyRepayment(): BelongsTo
+    {
+        return $this->belongsTo(LoanEarlyRepayment::class, 'early_repayment_id');
     }
 
     public function payments(): HasMany

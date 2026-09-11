@@ -33,6 +33,7 @@ class BulkTransactionService
         int $userId
     ): BulkTransaction {
         \App\Services\LoanTopUpGuardService::assertBulkAllowedForBranch($branchId);
+        \App\Services\LoanEarlyRepaymentGuardService::assertBulkAllowedForBranch($branchId); // EARLY-REPAYMENT-BULK-SERVICE-GUARD
 
         $date = Carbon::parse($transactionDate)->startOfDay();
         $period = sprintf('%04d-%02d', $year, $month);

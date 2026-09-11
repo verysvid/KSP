@@ -57,6 +57,30 @@
                     </div>
                 @endif
 
+                {{-- EARLY-REPAYMENT-BULK-WARNING --}}
+                @if($hasBlockingEarlyRepayment ?? false)
+                    <div class="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-4
+                                text-sm text-amber-800
+                                dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                        <div class="font-bold">Transaksi Bulk sementara tidak dapat diproses.</div>
+                        <div class="mt-1">
+                            Ada Pelunasan Dini yang belum diverifikasi/approve. Harap segera dicek dan ditindaklanjuti.
+                        </div>
+                        @if(($blockingEarlyRepayments ?? collect())->isNotEmpty())
+                            <div class="mt-3 space-y-1 border-t border-amber-300/70 pt-3 dark:border-amber-500/20">
+                                @foreach($blockingEarlyRepayments as $earlyRepayment)
+                                    <div>
+                                        <strong>{{ $earlyRepayment->loan?->loan_no ?? '-' }}</strong>
+                                        · {{ $earlyRepayment->loan?->member?->name ?? '-' }}
+                                        · Sisa Pokok <strong>Rp {{ number_format((float) $earlyRepayment->outstanding_principal, 0, ',', '.') }}</strong>
+                                        · {{ $earlyRepayment->request_date?->format('d/m/Y') ?? '-' }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('bulk-transactions.store') }}" id="bulk-form">
                     @csrf
                     <input type="hidden" name="month" value="{{ $month }}"><input type="hidden" name="year" value="{{ $year }}">
@@ -230,14 +254,15 @@
                                    min="{{ $report['periodStart']->format('Y-m-d') }}" max="{{ $report['periodEnd']->format('Y-m-d') }}" value="{{ $defaultTransactionDate }}">
                             @error('transaction_date')<p class="form-error">{{ $message }}</p>@enderror
                         </div>
+						{{-- EARLY-REPAYMENT-BULK-SUBMIT-GUARD --}}
 						<button type="submit"
-								class="{{ ($report['selectableCount'] === 0 || ($hasBlockingTopUp ?? false))
+								class="{{ ($report['selectableCount'] === 0 || ($hasBlockingTopUp ?? false) || ($hasBlockingEarlyRepayment ?? false))
 									? 'btn bg-slate-300 text-slate-500 cursor-not-allowed hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400'
 									: 'btn btn-primary' }}"
-								@disabled($report['selectableCount'] === 0 || ($hasBlockingTopUp ?? false))
-								title="{{ ($hasBlockingTopUp ?? false)
-									? 'Ada Pengajuan TopUp yang belum selesai diproses.'
-									: '' }}">
+								@disabled($report['selectableCount'] === 0 || ($hasBlockingTopUp ?? false) || ($hasBlockingEarlyRepayment ?? false))
+								title="{{ ($hasBlockingEarlyRepayment ?? false)
+									? 'Ada Pelunasan Dini yang belum diverifikasi/approve.'
+									: (($hasBlockingTopUp ?? false) ? 'Ada Pengajuan TopUp yang belum selesai diproses.' : '') }}">
 							Submit
 						</button>
                     </div>

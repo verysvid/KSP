@@ -124,6 +124,7 @@ class LoanPaymentController extends Controller
         );
 
         \App\Services\LoanTopUpGuardService::assertLoanPaymentAllowed($loan);
+        \App\Services\LoanEarlyRepaymentGuardService::assertLoanPaymentAllowed($loan); // EARLY-REPAYMENT-PAYMENT-GUARD
 
         abort_unless(
             $installment->loan_id === $loan->id,

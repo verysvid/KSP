@@ -31,6 +31,7 @@ class LoanPaymentService
         }
 
         \App\Services\LoanTopUpGuardService::assertLoanPaymentAllowed($loan);
+        \App\Services\LoanEarlyRepaymentGuardService::assertLoanPaymentAllowed($loan); // EARLY-REPAYMENT-PAYMENT-SERVICE-GUARD
 
         if ($installment->loan_id !== $loan->id) {
             throw ValidationException::withMessages([

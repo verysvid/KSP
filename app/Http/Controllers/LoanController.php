@@ -30,7 +30,13 @@ class LoanController extends Controller
         abort_unless($request->user()?->can('loan.view'), 403);
 
         $member = $this->resolveMemberForAnggota($request, false);
-        $query = Loan::query()->with(['branch:id,code,name', 'member:id,branch_id,name', 'loanType:id,code,name']);
+        $canManageApproval = $request->user()?->hasAnyRole(['SuperAdmin', 'Manager', 'Pengurus']) ?? false;
+
+        $query = Loan::query()->with([
+            'branch:id,code,name',
+            'member:id,branch_id,name',
+            'loanType:id,code,name',
+        ]);
         $this->applyAccessScope($query, $request, $member);
 
         if ($request->filled('search')) {
@@ -41,23 +47,65 @@ class LoanController extends Controller
                     ->orWhereHas('loanType', fn ($t) => $t->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
             });
         }
-        if ($request->filled('status')) $query->where('status', $request->status);
-        if ($request->filled('loan_type_id')) $query->where('loan_type_id', $request->integer('loan_type_id'));
+
+        if ($request->filled('status')) {
+            if ($request->status === 'NEEDS_APPROVAL') {
+                abort_unless($canManageApproval, 403);
+
+                $query->where(function ($q) {
+                    $q->where('status', Loan::STATUS_SUBMITTED)
+                        ->orWhere(function ($earlyRepaymentQuery) {
+                            $earlyRepaymentQuery
+                                ->where('status', Loan::STATUS_ACTIVE)
+                                ->where('is_early_repayment', true);
+                        });
+                });
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('loan_type_id')) {
+            $query->where('loan_type_id', $request->integer('loan_type_id'));
+        }
 
         $loans = $query->latest('application_date')->latest('id')->paginate(15)->withQueryString();
         $loanTypes = LoanType::query()->orderBy('name')->get(['id', 'code', 'name']);
         $branches = collect();
+
         if ($this->branchContext->isSuperAdmin()) {
             $branches = Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
         }
 
         $baseStats = Loan::query();
         $this->applyAccessScope($baseStats, $request, $member, false);
+
         $totalLoans = (clone $baseStats)->count();
         $draftLoans = (clone $baseStats)->where('status', Loan::STATUS_DRAFT)->count();
-        $submittedLoans = (clone $baseStats)->where('status', Loan::STATUS_SUBMITTED)->count();
 
-        return view('loans.index', compact('loans', 'loanTypes', 'branches', 'totalLoans', 'draftLoans', 'submittedLoans'));
+        $pendingApprovalCount = 0;
+        if ($canManageApproval) {
+            $pendingApprovalCount = (clone $baseStats)
+                ->where(function ($q) {
+                    $q->where('status', Loan::STATUS_SUBMITTED)
+                        ->orWhere(function ($earlyRepaymentQuery) {
+                            $earlyRepaymentQuery
+                                ->where('status', Loan::STATUS_ACTIVE)
+                                ->where('is_early_repayment', true);
+                        });
+                })
+                ->count();
+        }
+
+        return view('loans.index', compact(
+            'loans',
+            'loanTypes',
+            'branches',
+            'totalLoans',
+            'draftLoans',
+            'pendingApprovalCount',
+            'canManageApproval'
+        ));
     }
 
     public function create(Request $request): View

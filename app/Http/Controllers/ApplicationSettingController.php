@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateApplicationSettingRequest;
 use App\Models\ApplicationSetting;
+use App\Models\Account; // EARLY-REPAYMENT-SETTINGS-ACCOUNT
 use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +16,16 @@ class ApplicationSettingController extends Controller
     {
         $setting = ApplicationSetting::query()->first() ?? ApplicationSetting::defaults();
 
-        return view('application-settings.edit', compact('setting'));
+        // EARLY-REPAYMENT-SETTINGS-CASH-ACCOUNTS
+        $cashAccounts = Account::query()
+            ->where('type', Account::TYPE_ASSET)
+            ->where('is_cash_bank', true)
+            ->where('is_postable', true)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'name']);
+
+        return view('application-settings.edit', compact('setting', 'cashAccounts'));
     }
 
     public function update(UpdateApplicationSettingRequest $request): RedirectResponse
@@ -35,12 +45,13 @@ class ApplicationSettingController extends Controller
 
         $oldValues = $setting->only([
             'system_name', 'title_1', 'title_2', 'abbreviation',
-            'description', 'copyright', 'logo_path', 'icon_path',
+            'description', 'copyright', 'bank_name', 'account_no', 'bank_account_id', // EARLY-REPAYMENT-SETTINGS-OLDVALUES
+            'logo_path', 'icon_path',
         ]);
 
         $data = $request->safe()->only([
             'system_name', 'title_1', 'title_2', 'abbreviation',
-            'description', 'copyright',
+            'description', 'copyright', 'bank_name', 'account_no', 'bank_account_id', // EARLY-REPAYMENT-SETTINGS-DATA
         ]);
 
         $oldLogo = $setting->logo_path;

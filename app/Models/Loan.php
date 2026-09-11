@@ -52,6 +52,7 @@ class Loan extends Model
         'outstanding_interest',
         'notes',
         'is_topup',
+        'is_early_repayment',
         'topup_from_loan_id',
         'old_loan_no',
         'topup_amount',
@@ -77,6 +78,7 @@ class Loan extends Model
             'outstanding_principal' => 'decimal:2',
             'outstanding_interest' => 'decimal:2',
             'is_topup' => 'boolean',
+            'is_early_repayment' => 'boolean',
             'topup_amount' => 'decimal:2',
         ];
     }
@@ -90,6 +92,12 @@ class Loan extends Model
     public function disbursedBy(): BelongsTo { return $this->belongsTo(User::class, 'disbursed_by'); }
     public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function updatedBy(): BelongsTo { return $this->belongsTo(User::class, 'updated_by'); }
+
+    // EARLY-REPAYMENT-LOAN-RELATION
+    public function earlyRepayments(): HasMany
+    {
+        return $this->hasMany(LoanEarlyRepayment::class)->latest('id');
+    }
 
     public function topUpFrom(): BelongsTo
     {

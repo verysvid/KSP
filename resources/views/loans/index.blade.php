@@ -32,20 +32,26 @@
             <div class="stat-value">{{ $draftLoans }}</div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-top">
-                <span class="stat-label">Menunggu Approval</span>
-                <div class="stat-icon">!</div>
-            </div>
-            <div class="stat-value">{{ $submittedLoans }}</div>
-        </div>
+        @if($canManageApproval ?? false)
+            <a href="{{ route('loans.index', ['status' => 'NEEDS_APPROVAL']) }}"
+               class="stat-card transition hover:-translate-y-0.5 hover:shadow-md">
+                <div class="stat-top">
+                    <span class="stat-label">Menunggu Approval</span>
+                    <div class="stat-icon">!</div>
+                </div>
+                <div class="stat-value">{{ $pendingApprovalCount }}</div>
+                <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Pengajuan Pinjaman + TopUp + Pelunasan Dini
+                </div>
+            </a>
+        @endif
     </div>
 
     <x-card>
         <form
             method="GET"
             action="{{ route('loans.index') }}"
-            class="mb-5 grid grid-cols-1 gap-3 md:grid-cols-[minmax(280px,1fr)_180px_180px_180px_auto]">
+            class="mb-5 grid grid-cols-1 gap-3 md:grid-cols-[minmax(280px,1fr)_180px_210px_180px_auto]">
 
             <input
                 name="search"
@@ -73,6 +79,11 @@
                 name="status"
                 class="form-select">
                 <option value="">Semua Status</option>
+                @if($canManageApproval ?? false)
+                    <option value="NEEDS_APPROVAL" @selected(request('status') === 'NEEDS_APPROVAL')>
+                        Perlu Approval
+                    </option>
+                @endif
                 <option value="DRAFT" @selected(request('status') === 'DRAFT')>Draft</option>
                 <option value="SUBMITTED" @selected(request('status') === 'SUBMITTED')>Submitted</option>
                 <option value="APPROVED" @selected(request('status') === 'APPROVED')>Approved</option>
@@ -114,6 +125,17 @@
             </div>
         </form>
 
+        @if(($canManageApproval ?? false) && request('status') === 'NEEDS_APPROVAL')
+            <div class="mb-5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700
+                        dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300">
+                <div class="font-bold">Menampilkan semua proses yang memerlukan approval.</div>
+                <div class="mt-1">
+                    Mencakup Pengajuan Pinjaman berstatus SUBMITTED, TopUp berstatus SUBMITTED,
+                    dan Pelunasan Dini yang sedang menunggu verifikasi/approval.
+                </div>
+            </div>
+        @endif
+
         {{-- Desktop --}}
         <div class="hidden md:block">
             <div class="table-wrapper">
@@ -122,7 +144,8 @@
                     <tr>
                         <th>No. Pinjaman</th>
                         <th>Anggota</th>
-                        <th>Jenis</th>
+                        <th>Jenis Proses</th>
+                        <th>Jenis Pinjaman</th>
                         <th>Nominal</th>
                         <th>Tenor</th>
                         <th>Status</th>
@@ -132,6 +155,19 @@
 
                     <tbody>
                     @forelse($loans as $loan)
+                        @php
+                            $isEarlyRepaymentPending = $loan->status === \App\Models\Loan::STATUS_ACTIVE
+                                && (bool) $loan->is_early_repayment;
+
+                            $processType = $isEarlyRepaymentPending
+                                ? 'Pelunasan Dini'
+                                : ($loan->is_topup ? 'TopUp' : 'Pengajuan Pinjaman');
+
+                            $processStatus = $isEarlyRepaymentPending
+                                ? \App\Models\Loan::STATUS_SUBMITTED
+                                : $loan->status;
+                        @endphp
+
                         <tr>
                             <td>
                                 <span class="table-primary text-indigo-600 dark:text-indigo-400">
@@ -156,6 +192,25 @@
                             </td>
 
                             <td>
+                                @if($isEarlyRepaymentPending)
+                                    <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700
+                                                 dark:bg-amber-500/15 dark:text-amber-300">
+                                        Pelunasan Dini
+                                    </span>
+                                @elseif($loan->is_topup)
+                                    <span class="inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700
+                                                 dark:bg-violet-500/15 dark:text-violet-300">
+                                        TopUp
+                                    </span>
+                                @else
+                                    <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700
+                                                 dark:bg-slate-700 dark:text-slate-200">
+                                        Pengajuan Pinjaman
+                                    </span>
+                                @endif
+                            </td>
+
+                            <td>
                                 <span class="table-primary">
                                     {{ $loan->loanType->name ?? '-' }}
                                 </span>
@@ -163,7 +218,7 @@
                                 <span class="table-secondary">
                                     {{ $loan->interest_type }}
                                     ·
-									{{ str_replace('.', ',', rtrim(rtrim(number_format((float) $loan->interest_rate, 4, '.', ''), '0'), '.')) }}%
+                                    {{ str_replace('.', ',', rtrim(rtrim(number_format((float) $loan->interest_rate, 4, '.', ''), '0'), '.')) }}%
                                 </span>
                             </td>
 
@@ -176,7 +231,13 @@
                             </td>
 
                             <td>
-                                <x-status-badge :status="$loan->status" />
+                                <x-status-badge :status="$processStatus" />
+
+                                @if($isEarlyRepaymentPending)
+                                    <div class="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                        Pinjaman: ACTIVE
+                                    </div>
+                                @endif
                             </td>
 
                             <td>
@@ -186,21 +247,21 @@
                                         Detail
                                     </a>
 
-									@if($loan->status === 'DRAFT')
-										<a href="{{ route('loans.simulation', $loan) }}"
-										   class="btn btn-secondary">
-											Simulasi
-										</a>
-									@endif
+                                    {{-- @if($loan->status === 'DRAFT')
+                                        <a href="{{ route('loans.simulation', $loan) }}"
+                                           class="btn btn-secondary">
+                                            Simulasi
+                                        </a>
+                                    @endif --}}
 
-									@if($loan->status === \App\Models\Loan::STATUS_DRAFT && auth()->user()?->can('loan.edit'))
-										<a href="{{ $loan->is_topup
-											? route('loans.topup.edit', $loan)
-											: route('loans.edit', $loan) }}"
-										   class="btn btn-secondary">
-											Edit
-										</a>
-									@endif
+                                    @if($loan->status === \App\Models\Loan::STATUS_DRAFT && auth()->user()?->can('loan.edit'))
+                                        <a href="{{ $loan->is_topup
+                                            ? route('loans.topup.edit', $loan)
+                                            : route('loans.edit', $loan) }}"
+                                           class="btn btn-secondary">
+                                            Edit
+                                        </a>
+                                    @endif
 
                                     @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.submit'))
                                         <form
@@ -224,7 +285,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7"
+                            <td colspan="8"
                                 class="empty-state">
                                 Belum ada pengajuan pinjaman.
                             </td>
@@ -238,6 +299,19 @@
         {{-- Mobile --}}
         <div class="space-y-3 md:hidden">
             @forelse($loans as $loan)
+                @php
+                    $isEarlyRepaymentPending = $loan->status === \App\Models\Loan::STATUS_ACTIVE
+                        && (bool) $loan->is_early_repayment;
+
+                    $processType = $isEarlyRepaymentPending
+                        ? 'Pelunasan Dini'
+                        : ($loan->is_topup ? 'TopUp' : 'Pengajuan Pinjaman');
+
+                    $processStatus = $isEarlyRepaymentPending
+                        ? \App\Models\Loan::STATUS_SUBMITTED
+                        : $loan->status;
+                @endphp
+
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4
                             dark:border-slate-700 dark:bg-slate-800/60">
 
@@ -256,7 +330,21 @@
                             </div>
                         </div>
 
-                        <x-status-badge :status="$loan->status" />
+                        <div class="text-right">
+                            <x-status-badge :status="$processStatus" />
+                            @if($isEarlyRepaymentPending)
+                                <div class="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                    Loan ACTIVE
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="text-xs text-slate-500 dark:text-slate-400">Jenis Proses</div>
+                        <div class="mt-1 font-semibold text-slate-800 dark:text-slate-100">
+                            {{ $processType }}
+                        </div>
                     </div>
 
                     <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -281,21 +369,21 @@
                             Detail
                         </a>
 
-						@if($loan->status === 'DRAFT')
-							<a href="{{ route('loans.simulation', $loan) }}"
-							   class="btn btn-secondary">
-								Simulasi
-							</a>
-						@endif
+                        {{-- @if($loan->status === 'DRAFT')
+                            <a href="{{ route('loans.simulation', $loan) }}"
+                               class="btn btn-secondary">
+                                Simulasi
+                            </a>
+                        @endif --}}
 
-						@if($loan->status === \App\Models\Loan::STATUS_DRAFT && auth()->user()?->can('loan.edit'))
-							<a href="{{ $loan->is_topup
-								? route('loans.topup.edit', $loan)
-								: route('loans.edit', $loan) }}"
-							   class="btn btn-secondary">
-								Edit
-							</a>
-						@endif
+                        @if($loan->status === \App\Models\Loan::STATUS_DRAFT && auth()->user()?->can('loan.edit'))
+                            <a href="{{ $loan->is_topup
+                                ? route('loans.topup.edit', $loan)
+                                : route('loans.edit', $loan) }}"
+                               class="btn btn-secondary">
+                                Edit
+                            </a>
+                        @endif
                     </div>
 
                     @if($loan->status === 'DRAFT' && auth()->user()?->can('loan.submit'))

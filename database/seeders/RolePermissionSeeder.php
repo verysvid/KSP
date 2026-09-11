@@ -24,6 +24,9 @@ class RolePermissionSeeder extends Seeder
             'saving-transaction.approve', 'saving-transaction.reject',
             'loan.view', 'loan.create', 'loan.edit', 'loan.delete', 'loan.submit',
             'loan.approve', 'loan.reject', 'loan.disburse', 'loan.pay',
+            // EARLY-REPAYMENT-PERMISSIONS-LIST
+            'early-repayment.view', 'early-repayment.create',
+            'early-repayment.approve', 'early-repayment.reject',
             'installment.view', 'installment.create', 'installment.edit',
             'bulk-transaction.view', 'bulk-transaction.process',
             'accounting.view',
@@ -58,6 +61,9 @@ class RolePermissionSeeder extends Seeder
             'saving-transaction.approve', 'saving-transaction.reject',
             'loan.view', 'loan.create', 'loan.edit', 'loan.submit',
             'loan.approve', 'loan.reject', 'loan.disburse', 'loan.pay',
+            // EARLY-REPAYMENT-MANAGER-PERMISSIONS
+            'early-repayment.view', 'early-repayment.create',
+            'early-repayment.approve', 'early-repayment.reject',
             'installment.view', 'installment.create', 'installment.edit',
             'bulk-transaction.view', 'bulk-transaction.process',
             'accounting.view',
@@ -84,6 +90,8 @@ class RolePermissionSeeder extends Seeder
         $anggota->syncPermissions([
             'saving-transaction.view', 'saving-transaction.create',
             'loan.view', 'loan.create', 'loan.edit', 'loan.delete', 'loan.submit',
+            // EARLY-REPAYMENT-ANGGOTA-PERMISSIONS
+            'early-repayment.view', 'early-repayment.create',
             'member-saving-report.view', 'member-loan-report.view',
         ]);
 

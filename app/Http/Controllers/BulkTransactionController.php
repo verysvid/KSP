@@ -36,6 +36,12 @@ class BulkTransactionController extends Controller
             : collect();
         $hasBlockingTopUp = $blockingTopUps->isNotEmpty();
 
+        // EARLY-REPAYMENT-BULK-GUARD
+        $blockingEarlyRepayments = $branchId
+            ? \App\Services\LoanEarlyRepaymentGuardService::blockingForBranch($branchId)
+            : collect();
+        $hasBlockingEarlyRepayment = $blockingEarlyRepayments->isNotEmpty();
+
         $periodDate = Carbon::create($year, $month, 1);
         $defaultDate = $periodDate->isSameMonth(now()) ? now() : $periodDate->copy()->endOfMonth();
 
@@ -52,6 +58,8 @@ class BulkTransactionController extends Controller
             'report' => $report, 'batches' => $batches,
             'blockingTopUps' => $blockingTopUps,
             'hasBlockingTopUp' => $hasBlockingTopUp,
+            'blockingEarlyRepayments' => $blockingEarlyRepayments,
+            'hasBlockingEarlyRepayment' => $hasBlockingEarlyRepayment,
             'defaultTransactionDate' => old('transaction_date', $defaultDate->format('Y-m-d')),
         ]);
     }
@@ -60,6 +68,7 @@ class BulkTransactionController extends Controller
     {
         $branchId = $this->resolveBranchId($request, true);
         \App\Services\LoanTopUpGuardService::assertBulkAllowedForBranch($branchId);
+        \App\Services\LoanEarlyRepaymentGuardService::assertBulkAllowedForBranch($branchId); // EARLY-REPAYMENT-BULK-STORE-GUARD
         $data = $request->validated();
         $batch = $this->bulkTransactionService->process(
             $branchId, (int) $data['month'], (int) $data['year'],

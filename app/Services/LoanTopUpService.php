@@ -13,6 +13,11 @@ class LoanTopUpService
             return ['eligible' => false, 'message' => 'TopUp hanya tersedia untuk pinjaman berstatus ACTIVE.'];
         }
 
+        // EARLY-REPAYMENT-TOPUP-GUARD
+        if ((bool) $loan->is_early_repayment) {
+            return ['eligible' => false, 'message' => 'TopUp tidak dapat diproses karena Pelunasan Dini sedang menunggu verifikasi/approval.'];
+        }
+
         $tenor = max(1, (int) $loan->tenor_months);
         $requiredPaid = (int) ceil($tenor / 2);
         $paidCount = $loan->installments()->where('status', 'PAID')->count();

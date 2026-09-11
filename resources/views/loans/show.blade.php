@@ -12,6 +12,7 @@
             </a>
 
             @include('loans.partials.topup-action')
+            @include('loans.partials.early-repayment-action') {{-- EARLY-REPAYMENT-ACTION --}}
 
 			@if($loan->status === 'DRAFT')
 				<a href="{{ route('loans.simulation', $loan) }}"
@@ -79,6 +80,7 @@
     </x-page-header>
 
     @include('loans.partials.topup-info')
+    @include('loans.partials.early-repayment-info') {{-- EARLY-REPAYMENT-INFO --}}
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
@@ -405,6 +407,19 @@
                     </div>
                 @endif
 
+                {{-- EARLY-REPAYMENT-PAYMENT-WARNING --}}
+                @if($loan->status === 'ACTIVE' && $loan->is_early_repayment)
+                    <div class="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3
+                                text-sm text-amber-800
+                                dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                        <div class="font-bold">Pembayaran angsuran sementara dinonaktifkan.</div>
+                        <div class="mt-1">
+                            Pelunasan Dini sedang menunggu verifikasi/approval Pengurus.
+                            Selesaikan proses Pelunasan Dini terlebih dahulu.
+                        </div>
+                    </div>
+                @endif
+
 				<div class="hidden md:block">
 					<div class="table-wrapper">
 						<table class="data-table">
@@ -436,6 +451,12 @@
 									<td>Rp {{ number_format((float) $installment->ending_principal, 0, ',', '.') }}</td>
 									<td>
 										<x-status-badge :status="$installment->status" />
+                                        {{-- EARLY-REPAYMENT-INSTALLMENT-LABEL --}}
+                                        @if($installment->early_repayment_id)
+                                            <div class="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                                Pelunasan Dini
+                                            </div>
+                                        @endif
 									</td>
 									<td>
 									@if($installment->status === 'PAID')
@@ -457,6 +478,7 @@
 											@if(
 												$loan->status === 'ACTIVE'
 												&& !($hasBlockingTopUp ?? false)
+												&& !$loan->is_early_repayment
 												&& $installment->status !== 'PAID'
 												&& auth()->user()?->can('loan.pay')
 											)
@@ -521,6 +543,7 @@
 								@if(
 									$loan->status === 'ACTIVE'
 									&& !($hasBlockingTopUp ?? false)
+									&& !$loan->is_early_repayment
 									&& $installment->status !== 'PAID'
 									&& auth()->user()?->can('loan.pay')
 								)

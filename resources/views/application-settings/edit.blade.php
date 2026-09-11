@@ -115,6 +115,46 @@
                 </div>
             </x-card>
 
+            {{-- EARLY-REPAYMENT-BANK-SETTINGS --}}
+            <x-card
+                title="Rekening Pelunasan Dini"
+                description="Rekening ini ditampilkan kepada anggota sebagai tujuan transfer Pelunasan Dini. Akun akuntansi digunakan saat jurnal approval dibentuk.">
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <div>
+                        <label for="bank_name" class="form-label">Nama Bank</label>
+                        <input id="bank_name" name="bank_name" type="text" maxlength="100"
+                               value="{{ old('bank_name', $setting->bank_name) }}" class="form-control"
+                               placeholder="Contoh: BCA">
+                        @error('bank_name')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label for="account_no" class="form-label">Nomor Rekening</label>
+                        <input id="account_no" name="account_no" type="text" maxlength="100"
+                               value="{{ old('account_no', $setting->account_no) }}" class="form-control"
+                               placeholder="Nomor rekening koperasi">
+                        @error('account_no')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label for="bank_account_id" class="form-label">Akun Akuntansi Bank</label>
+                        <select id="bank_account_id" name="bank_account_id" class="form-select">
+                            <option value="">Pilih akun Kas/Bank</option>
+                            @foreach($cashAccounts as $account)
+                                <option value="{{ $account->id }}"
+                                        @selected((string) old('bank_account_id', $setting->bank_account_id) === (string) $account->id)>
+                                    {{ $account->code }} - {{ $account->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            Saat Pelunasan Dini di-Approve, akun ini didebit sebesar Sisa Pokok dan akun Piutang Pinjaman dikredit dengan nilai yang sama.
+                        </p>
+                        @error('bank_account_id')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+            </x-card>
+
             <x-card
                 title="Preview Branding"
                 description="Gambaran sederhana penggunaan identitas pada halaman depan dan login.">

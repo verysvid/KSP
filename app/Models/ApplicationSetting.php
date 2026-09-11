@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo; // EARLY-REPAYMENT-BANK-RELATION
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,9 +18,18 @@ class ApplicationSetting extends Model
         'abbreviation',
         'description',
         'copyright',
+        'bank_name',
+        'account_no',
+        'bank_account_id',
         'logo_path',
         'icon_path',
     ];
+
+    // EARLY-REPAYMENT-BANK-ACCOUNT-RELATION
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'bank_account_id');
+    }
 
     public static function defaults(): self
     {

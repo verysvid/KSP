@@ -17,6 +17,7 @@ use App\Http\Controllers\TopUpLoanController;
 use App\Http\Controllers\LoanDisbursementController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\LoanPaymentController;
+use App\Http\Controllers\LoanEarlyRepaymentController; // EARLY-REPAYMENT-ROUTES
 use App\Http\Controllers\LoanOverdueController;
 use App\Http\Controllers\LoanDashboardController;
 use App\Http\Controllers\LoanReportController;
@@ -220,6 +221,25 @@ Route::middleware(['auth', 'branch'])->group(function () {
         ->middleware('can:loan.edit')->name('loans.topup.edit');
     Route::put('loans/{loan}/topup', [TopUpLoanController::class, 'update'])
         ->middleware('can:loan.edit')->name('loans.topup.update');
+
+    // EARLY-REPAYMENT-ROUTES-BEGIN
+    Route::get('loans/{loan}/early-repayment', [LoanEarlyRepaymentController::class, 'create'])
+        ->middleware('can:early-repayment.create')
+        ->name('loans.early-repayments.create');
+    Route::post('loans/{loan}/early-repayment', [LoanEarlyRepaymentController::class, 'store'])
+        ->middleware('can:early-repayment.create')
+        ->name('loans.early-repayments.store');
+    Route::get('loans/{loan}/early-repayments/{earlyRepayment}/proof', [LoanEarlyRepaymentController::class, 'proof'])
+        ->middleware('can:early-repayment.view')
+        ->name('loans.early-repayments.proof');
+    Route::patch('loans/{loan}/early-repayments/{earlyRepayment}/approve', [LoanEarlyRepaymentController::class, 'approve'])
+        ->middleware('can:early-repayment.approve')
+        ->name('loans.early-repayments.approve');
+    Route::patch('loans/{loan}/early-repayments/{earlyRepayment}/reject', [LoanEarlyRepaymentController::class, 'reject'])
+        ->middleware('can:early-repayment.reject')
+        ->name('loans.early-repayments.reject');
+    // EARLY-REPAYMENT-ROUTES-END
+
     Route::get('loans/{loan}', [LoanController::class, 'show'])->middleware('can:loan.view')->name('loans.show');
     Route::get('loans/{loan}/simulation', [LoanController::class, 'simulation'])->middleware('can:loan.view')->name('loans.simulation');
     Route::get('loans/{loan}/edit', [LoanController::class, 'edit'])->middleware('can:loan.edit')->name('loans.edit');
