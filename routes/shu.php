@@ -4,7 +4,7 @@ use App\Http\Controllers\ShuController;
 use App\Http\Controllers\ShuMemberReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'branch'])->group(function () {
+Route::middleware(['auth', 'branch'])->group(function () {
     Route::get('/shu', [ShuController::class, 'index'])
         ->middleware('can:shu.view')->name('shu.index');
     Route::get('/shu/create', [ShuController::class, 'create'])
@@ -25,6 +25,6 @@ Route::middleware(['web', 'auth', 'branch'])->group(function () {
         ->middleware('can:shu.pay')->name('shu.paid');
 });
 
-Route::middleware(['web', 'auth', 'can:shu-member-report.view'])
+Route::middleware(['auth', 'can:shu-member-report.view'])
     ->get('/reports/shu', [ShuMemberReportController::class, 'index'])
     ->name('reports.shu.index');

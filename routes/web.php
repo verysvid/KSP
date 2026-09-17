@@ -330,3 +330,5 @@ require __DIR__.'/member-loan-reports.php';
 require __DIR__.'/bulk-transactions.php';
 require __DIR__.'/auth.php';
 require __DIR__.'/application-settings.php';
+require __DIR__.'/year-closing.php';
+require __DIR__.'/shu.php';
