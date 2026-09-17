@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Account;
+use App\Models\YearClosing;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -75,6 +76,10 @@ class IncomeStatementService
             ->join('journal_entries as je', 'je.id', '=', 'jel.journal_entry_id')
             ->whereDate('je.journal_date', '>=', $dateFrom)
             ->whereDate('je.journal_date', '<=', $dateTo)
+            ->where(function ($q) {
+                $q->whereNull('je.reference_type')
+                    ->orWhere('je.reference_type', '!=', YearClosing::class);
+            })
             ->groupBy('jel.account_id')
             ->selectRaw(
                 'jel.account_id, COALESCE(SUM(jel.debit), 0) AS debit, COALESCE(SUM(jel.credit), 0) AS credit'

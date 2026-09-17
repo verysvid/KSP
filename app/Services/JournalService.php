@@ -8,6 +8,11 @@ use RuntimeException;
 
 class JournalService
 {
+    public function __construct(
+        private readonly YearClosingService $yearClosingService
+    ) {
+    }
+
     public function create(
         int $branchId,
         string $journalDate,
@@ -17,6 +22,8 @@ class JournalService
         array $lines,
         ?int $createdBy
     ): JournalEntry {
+        $this->yearClosingService->assertDateOpen($branchId, $journalDate);
+
         $totalDebit = round(array_sum(array_column($lines, 'debit')), 2);
         $totalCredit = round(array_sum(array_column($lines, 'credit')), 2);
 
@@ -35,7 +42,7 @@ class JournalService
         ) {
             $journal = JournalEntry::create([
                 'branch_id' => $branchId,
-				'journal_no' => $this->generateJournalNo($branchId),
+                'journal_no' => $this->generateJournalNo($branchId),
                 'journal_date' => $journalDate,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
@@ -56,23 +63,22 @@ class JournalService
         });
     }
 
-	protected function generateJournalNo(int $branchId): string
-	{
-		$prefix = 'JR-' . now()->format('Ym');
+    protected function generateJournalNo(int $branchId): string
+    {
+        $prefix = 'JR-' . now()->format('Ym');
 
-		$last = JournalEntry::withoutGlobalScope('branch')
-			->where('journal_no', 'like', $prefix . '-%')
-			->latest('id')
-			->first();
+        $last = JournalEntry::withoutGlobalScope('branch')
+            ->where('journal_no', 'like', $prefix . '-%')
+            ->latest('id')
+            ->first();
 
-		$sequence = 0;
+        $sequence = 0;
 
-		if ($last) {
-			$parts = explode('-', $last->journal_no);
-			$sequence = (int) end($parts);
-		}
+        if ($last) {
+            $parts = explode('-', $last->journal_no);
+            $sequence = (int) end($parts);
+        }
 
-		return sprintf('%s-%06d', $prefix, $sequence + 1);
-	}
-
+        return sprintf('%s-%06d', $prefix, $sequence + 1);
+    }
 }

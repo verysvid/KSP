@@ -24,7 +24,6 @@ class RolePermissionSeeder extends Seeder
             'saving-transaction.approve', 'saving-transaction.reject',
             'loan.view', 'loan.create', 'loan.edit', 'loan.delete', 'loan.submit',
             'loan.approve', 'loan.reject', 'loan.disburse', 'loan.pay',
-            // EARLY-REPAYMENT-PERMISSIONS-LIST
             'early-repayment.view', 'early-repayment.create',
             'early-repayment.approve', 'early-repayment.reject',
             'installment.view', 'installment.create', 'installment.edit',
@@ -34,7 +33,9 @@ class RolePermissionSeeder extends Seeder
             'journal.view', 'journal.create', 'journal.edit',
             'report.view', 'report.member-deductions.view',
             'member-saving-report.view', 'member-loan-report.view',
-            'shu.view', 'shu.process', 'closing.view', 'closing.process',
+            'shu.view', 'shu.create', 'shu.calculate', 'shu.finalize', 'shu.pay', 'shu.process',
+            'shu-member-report.view',
+            'closing.view', 'closing.process',
             'user.view', 'user.create', 'user.edit', 'user.delete', 'user.restore',
             'role.view', 'role.edit', 'audit-log.view',
         ];
@@ -61,7 +62,6 @@ class RolePermissionSeeder extends Seeder
             'saving-transaction.approve', 'saving-transaction.reject',
             'loan.view', 'loan.create', 'loan.edit', 'loan.submit',
             'loan.approve', 'loan.reject', 'loan.disburse', 'loan.pay',
-            // EARLY-REPAYMENT-MANAGER-PERMISSIONS
             'early-repayment.view', 'early-repayment.create',
             'early-repayment.approve', 'early-repayment.reject',
             'installment.view', 'installment.create', 'installment.edit',
@@ -71,6 +71,8 @@ class RolePermissionSeeder extends Seeder
             'journal.view', 'journal.create', 'journal.edit',
             'report.view', 'report.member-deductions.view',
             'member-saving-report.view', 'member-loan-report.view',
+            'shu.view', 'shu.create', 'shu.calculate', 'shu.finalize',
+            'closing.view', 'closing.process',
             'user.view', 'user.create', 'user.edit', 'user.delete', 'user.restore',
             'audit-log.view',
         ];
@@ -83,16 +85,17 @@ class RolePermissionSeeder extends Seeder
             'loan.view', 'installment.view', 'bulk-transaction.view',
             'accounting.view', 'account.view', 'account.create', 'account.edit',
             'journal.view', 'journal.create', 'journal.edit',
-            'report.view', 'shu.view', 'shu.process',
+            'report.view',
+            'shu.view', 'shu.create', 'shu.calculate', 'shu.pay', 'shu.process',
             'closing.view', 'closing.process',
         ]);
 
         $anggota->syncPermissions([
             'saving-transaction.view', 'saving-transaction.create',
             'loan.view', 'loan.create', 'loan.edit', 'loan.delete', 'loan.submit',
-            // EARLY-REPAYMENT-ANGGOTA-PERMISSIONS
             'early-repayment.view', 'early-repayment.create',
             'member-saving-report.view', 'member-loan-report.view',
+            'shu-member-report.view',
         ]);
 
         $legacy = [
